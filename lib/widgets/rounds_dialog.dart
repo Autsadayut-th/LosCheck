@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 
 class RoundsDialog extends StatefulWidget {
-  const RoundsDialog({super.key});
+  const RoundsDialog({super.key, this.initialRounds});
+
+  final int? initialRounds;
 
   @override
   State<RoundsDialog> createState() => _RoundsDialogState();
 }
 
 class _RoundsDialogState extends State<RoundsDialog> {
-  final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _controller;
   String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.initialRounds?.toString() ?? '',
+    );
+  }
 
   @override
   void dispose() {

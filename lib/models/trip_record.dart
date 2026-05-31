@@ -4,12 +4,14 @@ class TripRecord {
     required this.rateBaht,
     required this.rounds,
     required this.createdAt,
+    this.supabaseId,
   });
 
   final String distanceLabel;
   final int rateBaht;
   final int rounds;
   final DateTime createdAt;
+  final int? supabaseId;
 
   int get totalBaht => rounds * rateBaht;
 
@@ -20,12 +22,16 @@ class TripRecord {
   }
 
   Map<String, Object> toJson() {
-    return {
+    final json = <String, Object>{
       'distanceLabel': distanceLabel,
       'rateBaht': rateBaht,
       'rounds': rounds,
       'createdAt': createdAt.toIso8601String(),
     };
+    if (supabaseId != null) {
+      json['supabaseId'] = supabaseId!;
+    }
+    return json;
   }
 
   Map<String, Object> toSupabaseJson() {
@@ -43,6 +49,17 @@ class TripRecord {
       rateBaht: json['rateBaht'] as int,
       rounds: json['rounds'] as int,
       createdAt: DateTime.parse(json['createdAt'] as String),
+      supabaseId: json['supabaseId'] as int?,
+    );
+  }
+
+  static TripRecord fromSupabaseJson(Map<String, dynamic> json) {
+    return TripRecord(
+      distanceLabel: json['distance_label'] as String,
+      rateBaht: json['rate_baht'] as int,
+      rounds: json['rounds'] as int,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      supabaseId: json['id'] as int?,
     );
   }
 }

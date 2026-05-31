@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/customer_record.dart';
+import '../services/csv_export_service.dart';
 import '../services/supabase_sync_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 
@@ -140,6 +141,25 @@ class _CustomerPageState extends State<CustomerPage> {
       _records.remove(record);
     });
     await _saveRecords();
+
+    if (record.supabaseId != null) {
+      await SupabaseSyncService.deleteCustomerRecord(
+        record.supabaseId!,
+        onError: _showSyncError,
+      );
+    }
+  }
+
+  Future<void> _exportCsv() async {
+    if (_records.isEmpty) return;
+
+    final csv = CsvExportService.exportCustomerRecords(_records);
+    await Clipboard.setData(ClipboardData(text: csv));
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('คัดลอกข้อมูลลูกค้า CSV แล้ว')),
+    );
   }
 
   void _useRecord(CustomerRecord record) {
@@ -166,10 +186,22 @@ class _CustomerPageState extends State<CustomerPage> {
                 ? const Center(child: CircularProgressIndicator())
                 : ListView(
                     children: [
-                      Text(
-                        'ข้อมูลลูกค้า',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'ข้อมูลลูกค้า',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          if (_records.isNotEmpty)
+                            IconButton(
+                              tooltip: 'Export CSV',
+                              onPressed: _exportCsv,
+                              icon: const Icon(Icons.file_download_outlined),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       _CustomerForm(
@@ -403,10 +435,20 @@ class _CustomerRecordTile extends StatelessWidget {
         subtitle: Text('${record.phone}\n${record.address}'),
         isThreeLine: true,
         onTap: onUse,
-        trailing: IconButton(
-          tooltip: 'ลบข้อมูลลูกค้า',
-          onPressed: onDelete,
-          icon: const Icon(Icons.delete_outline),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: 'แก้ไขข้อมูล',
+              onPressed: onUse,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: 'ลบข้อมูลลูกค้า',
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
         ),
       ),
     );
