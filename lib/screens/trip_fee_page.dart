@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/distance_option.dart';
 import '../models/trip_record.dart';
 import '../services/supabase_sync_service.dart';
+import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/rounds_dialog.dart';
 
 class TripFeePage extends StatefulWidget {
@@ -135,10 +136,27 @@ class _TripFeePageState extends State<TripFeePage> {
     });
 
     await _saveRecords();
-    await SupabaseSyncService.saveTripRecord(record);
+    await SupabaseSyncService.saveTripRecord(
+      record,
+      onError: _showSyncError,
+    );
+  }
+
+  void _showSyncError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   Future<void> _deleteRecord(TripRecord record) async {
+    final confirmed = await confirmDelete(
+      context,
+      'ลบรายการนี้?',
+      '${record.distanceLabel} • ${record.rounds} รอบ (${record.totalBaht} บาท)',
+    );
+    if (!confirmed) return;
+
     setState(() {
       _records.remove(record);
     });
@@ -146,6 +164,13 @@ class _TripFeePageState extends State<TripFeePage> {
   }
 
   Future<void> _clearToday() async {
+    final confirmed = await confirmDelete(
+      context,
+      'ล้างรายการวันนี้ทั้งหมด?',
+      'รวม $_todayRounds รอบ ($_todayTotal บาท)',
+    );
+    if (!confirmed) return;
+
     setState(() {
       _records.removeWhere((record) => record.isSameDay(DateTime.now()));
     });

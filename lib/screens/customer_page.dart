@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/customer_record.dart';
 import '../services/supabase_sync_service.dart';
+import '../widgets/confirm_delete_dialog.dart';
 
 class CustomerPage extends StatefulWidget {
   const CustomerPage({super.key});
@@ -114,10 +115,27 @@ class _CustomerPageState extends State<CustomerPage> {
     });
 
     await _saveRecords();
-    await SupabaseSyncService.saveCustomerRecord(record);
+    await SupabaseSyncService.saveCustomerRecord(
+      record,
+      onError: _showSyncError,
+    );
+  }
+
+  void _showSyncError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   Future<void> _deleteRecord(CustomerRecord record) async {
+    final confirmed = await confirmDelete(
+      context,
+      'ลบข้อมูลลูกค้า?',
+      '${record.name} (${record.phone})',
+    );
+    if (!confirmed) return;
+
     setState(() {
       _records.remove(record);
     });
