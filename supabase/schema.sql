@@ -43,3 +43,29 @@ on public.trip_records
 for insert
 to anon
 with check (true);
+
+create policy "demo can update customers"
+on public.customers
+for update
+to anon
+using (true)
+with check (true);
+
+create policy "demo can delete customers"
+on public.customers
+for delete
+to anon
+using (true);
+
+create policy "demo can update trip records"
+on public.trip_records
+for update
+to anon
+using (true)
+with check (true);
+
+create policy "demo can delete trip records"
+on public.trip_records
+for delete
+to anon
+using (true);

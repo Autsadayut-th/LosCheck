@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/distance_option.dart';
 import '../models/trip_record.dart';
+import '../services/csv_export_service.dart';
 import '../services/supabase_sync_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/rounds_dialog.dart';
@@ -45,6 +47,40 @@ class _TripFeePageState extends State<TripFeePage> {
   List<TripRecord> get _todayRecords {
     final now = DateTime.now();
     return _records.where((record) => record.isSameDay(now)).toList();
+  }
+
+  List<_PeriodSummary> get _weeklySummaries {
+    return _buildPeriodSummaries((date) {
+      final weekStart = date.subtract(Duration(days: date.weekday % 7));
+      return DateTime(weekStart.year, weekStart.month, weekStart.day);
+    });
+  }
+
+  List<_PeriodSummary> get _monthlySummaries {
+    return _buildPeriodSummaries(
+      (date) => DateTime(date.year, date.month),
+    );
+  }
+
+  List<_PeriodSummary> _buildPeriodSummaries(
+    DateTime Function(DateTime) keyFn,
+  ) {
+    final grouped = <DateTime, List<TripRecord>>{};
+    for (final record in _records) {
+      final key = keyFn(record.createdAt);
+      grouped.putIfAbsent(key, () => []).add(record);
+    }
+    final summaries = grouped.entries.map((entry) {
+      final records = entry.value;
+      return _PeriodSummary(
+        periodStart: entry.key,
+        totalBaht: records.fold<int>(0, (t, r) => t + r.totalBaht),
+        totalRounds: records.fold<int>(0, (t, r) => t + r.rounds),
+        recordCount: records.length,
+      );
+    }).toList()
+      ..sort((a, b) => b.periodStart.compareTo(a.periodStart));
+    return summaries;
   }
 
   List<_DailyTripSummary> get _dailySummaries {
@@ -149,6 +185,30 @@ class _TripFeePageState extends State<TripFeePage> {
     );
   }
 
+  Future<void> _editRecord(TripRecord record) async {
+    final newRounds = await showDialog<int>(
+      context: context,
+      builder: (context) => RoundsDialog(initialRounds: record.rounds),
+    );
+
+    if (newRounds == null || newRounds == record.rounds) return;
+
+    final index = _records.indexOf(record);
+    if (index == -1) return;
+
+    final updated = TripRecord(
+      distanceLabel: record.distanceLabel,
+      rateBaht: record.rateBaht,
+      rounds: newRounds,
+      createdAt: record.createdAt,
+    );
+
+    setState(() {
+      _records[index] = updated;
+    });
+    await _saveRecords();
+  }
+
   Future<void> _deleteRecord(TripRecord record) async {
     final confirmed = await confirmDelete(
       context,
@@ -161,6 +221,25 @@ class _TripFeePageState extends State<TripFeePage> {
       _records.remove(record);
     });
     await _saveRecords();
+
+    if (record.supabaseId != null) {
+      await SupabaseSyncService.deleteTripRecord(
+        record.supabaseId!,
+        onError: _showSyncError,
+      );
+    }
+  }
+
+  Future<void> _exportCsv() async {
+    if (_records.isEmpty) return;
+
+    final csv = CsvExportService.exportTripRecords(_records);
+    await Clipboard.setData(ClipboardData(text: csv));
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('คัดลอกข้อมูล CSV แล้ว')),
+    );
   }
 
   Future<void> _clearToday() async {
@@ -181,6 +260,8 @@ class _TripFeePageState extends State<TripFeePage> {
   Widget build(BuildContext context) {
     final todayRecords = _todayRecords;
     final dailySummaries = _dailySummaries;
+    final weeklySummaries = _weeklySummaries;
+    final monthlySummaries = _monthlySummaries;
 
     return SafeArea(
       child: Center(
@@ -196,7 +277,9 @@ class _TripFeePageState extends State<TripFeePage> {
                         totalBaht: _todayTotal,
                         totalRounds: _todayRounds,
                         canClear: todayRecords.isNotEmpty,
+                        canExport: _records.isNotEmpty,
                         onClear: _clearToday,
+                        onExport: _exportCsv,
                       ),
                       const SizedBox(height: 20),
                       Text(
@@ -242,6 +325,54 @@ class _TripFeePageState extends State<TripFeePage> {
                           _DailySummaryTile(summary: summary),
                       const SizedBox(height: 18),
                       Text(
+                        'สรุปรายสัปดาห์',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (weeklySummaries.isEmpty)
+                        const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(18),
+                            child: Text(
+                              'ยังไม่มีสรุปรายสัปดาห์',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                      else
+                        for (final summary in weeklySummaries)
+                          _PeriodSummaryTile(
+                            summary: summary,
+                            formatLabel: _formatWeekLabel,
+                          ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'สรุปรายเดือน',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (monthlySummaries.isEmpty)
+                        const Card(
+                          child: Padding(
+                            padding: EdgeInsets.all(18),
+                            child: Text(
+                              'ยังไม่มีสรุปรายเดือน',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                      else
+                        for (final summary in monthlySummaries)
+                          _PeriodSummaryTile(
+                            summary: summary,
+                            formatLabel: _formatMonthLabel,
+                          ),
+                      const SizedBox(height: 18),
+                      Text(
                         'ประวัติวันนี้',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
@@ -262,6 +393,7 @@ class _TripFeePageState extends State<TripFeePage> {
                         for (final record in todayRecords)
                           _RecordTile(
                             record: record,
+                            onEdit: () => _editRecord(record),
                             onDelete: () => _deleteRecord(record),
                           ),
                     ],
@@ -292,13 +424,17 @@ class _SummaryPanel extends StatelessWidget {
     required this.totalBaht,
     required this.totalRounds,
     required this.canClear,
+    required this.canExport,
     required this.onClear,
+    required this.onExport,
   });
 
   final int totalBaht;
   final int totalRounds;
   final bool canClear;
+  final bool canExport;
   final VoidCallback onClear;
+  final VoidCallback onExport;
 
   @override
   Widget build(BuildContext context) {
@@ -331,10 +467,24 @@ class _SummaryPanel extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 14),
-            OutlinedButton.icon(
-              onPressed: canClear ? onClear : null,
-              icon: const Icon(Icons.delete_sweep_outlined),
-              label: const Text('ล้างรายการวันนี้'),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: canClear ? onClear : null,
+                    icon: const Icon(Icons.delete_sweep_outlined),
+                    label: const Text('ล้างวันนี้'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: canExport ? onExport : null,
+                    icon: const Icon(Icons.file_download_outlined),
+                    label: const Text('Export CSV'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -381,9 +531,14 @@ class _DailySummaryTile extends StatelessWidget {
 }
 
 class _RecordTile extends StatelessWidget {
-  const _RecordTile({required this.record, required this.onDelete});
+  const _RecordTile({
+    required this.record,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   final TripRecord record;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
@@ -402,6 +557,11 @@ class _RecordTile extends StatelessWidget {
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            IconButton(
+              tooltip: 'แก้ไขจำนวนรอบ',
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_outlined),
             ),
             IconButton(
               tooltip: 'ลบรายการ',
@@ -425,4 +585,61 @@ String _formatNumericDate(DateTime date) {
   final day = date.day.toString().padLeft(2, '0');
   final month = date.month.toString().padLeft(2, '0');
   return '$day/$month/${date.year}';
+}
+
+class _PeriodSummary {
+  const _PeriodSummary({
+    required this.periodStart,
+    required this.totalBaht,
+    required this.totalRounds,
+    required this.recordCount,
+  });
+
+  final DateTime periodStart;
+  final int totalBaht;
+  final int totalRounds;
+  final int recordCount;
+}
+
+class _PeriodSummaryTile extends StatelessWidget {
+  const _PeriodSummaryTile({
+    required this.summary,
+    required this.formatLabel,
+  });
+
+  final _PeriodSummary summary;
+  final String Function(DateTime) formatLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.bar_chart_outlined),
+        title: Text(formatLabel(summary.periodStart)),
+        subtitle: Text(
+          'รวม ${summary.totalRounds} รอบ • ${summary.recordCount} รายการ',
+        ),
+        trailing: Text(
+          '${summary.totalBaht} บาท',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+}
+
+const List<String> _thaiMonths = [
+  'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
+];
+
+String _formatWeekLabel(DateTime weekStart) {
+  final weekEnd = weekStart.add(const Duration(days: 6));
+  return '${_formatNumericDate(weekStart)} - ${_formatNumericDate(weekEnd)}';
+}
+
+String _formatMonthLabel(DateTime monthStart) {
+  return '${_thaiMonths[monthStart.month - 1]} ${monthStart.year}';
 }
