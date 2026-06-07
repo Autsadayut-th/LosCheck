@@ -9,6 +9,7 @@ import '../models/customer_record.dart';
 import '../database/app_database.dart';
 import '../services/csv_export_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
+import '../core/theme_extensions.dart';
 
 class CustomerPage extends StatefulWidget {
   const CustomerPage({super.key});
@@ -450,27 +451,21 @@ class _CustomerPageState extends State<CustomerPage> {
                       ),
                       const SliverToBoxAdapter(child: SizedBox(height: 10)),
                       if (_records.isEmpty)
-                        const SliverToBoxAdapter(
-                          child: Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(18),
-                              child: Text(
-                                'ยังไม่มีข้อมูลลูกค้า',
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
+                        SliverToBoxAdapter(
+                          child: emptyState(
+                            context,
+                            icon: Icons.people_outline,
+                            title: 'ยังไม่มีข้อมูลลูกค้า',
+                            message: 'เพิ่มลูกค้าใหม่เพื่อเริ่มต้นใช้งาน',
                           ),
                         )
                       else if (filteredRecords.isEmpty)
-                        const SliverToBoxAdapter(
-                          child: Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(18),
-                              child: Text(
-                                'ไม่พบเบอร์โทรที่ค้นหา',
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
+                        SliverToBoxAdapter(
+                          child: emptyState(
+                            context,
+                            icon: Icons.search_outlined,
+                            title: 'ไม่พบเบอร์โทรที่ค้นหา',
+                            message: 'ลองค้นหาด้วยเบอร์โทรอื่น',
                           ),
                         )
                       else

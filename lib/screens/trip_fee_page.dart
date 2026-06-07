@@ -7,6 +7,7 @@ import '../database/app_database.dart';
 import '../services/csv_export_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/rounds_dialog.dart';
+import '../core/theme_extensions.dart';
 
 class TripFeePage extends StatefulWidget {
   const TripFeePage({super.key});
@@ -357,21 +358,11 @@ class _TripFeePageState extends State<TripFeePage> {
                       const SliverToBoxAdapter(child: SizedBox(height: 12)),
                       if (selectedRecords.isEmpty)
                         SliverToBoxAdapter(
-                          child: Card(
-                            elevation: 0,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Text(
-                                'ยังไม่มีรายการในวันนี้',
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
+                          child: emptyState(
+                            context,
+                            icon: Icons.receipt_long_outlined,
+                            title: 'ยังไม่มีรายการในวันนี้',
+                            message: 'เพิ่มรายการเดินทางใหม่เพื่อดูรายละเอียด',
                           ),
                         )
                       else
@@ -399,21 +390,11 @@ class _TripFeePageState extends State<TripFeePage> {
                       const SliverToBoxAdapter(child: SizedBox(height: 12)),
                       if (dailySummaries.isEmpty)
                         SliverToBoxAdapter(
-                          child: Card(
-                            elevation: 0,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Text(
-                                'ยังไม่มีสรุปรายวัน',
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
+                          child: emptyState(
+                            context,
+                            icon: Icons.calendar_today_outlined,
+                            title: 'ยังไม่มีสรุปรายวัน',
+                            message: 'เพิ่มรายการเดินทางเพื่อดูสรุปแบบรายวัน',
                           ),
                         )
                       else
@@ -438,21 +419,12 @@ class _TripFeePageState extends State<TripFeePage> {
                       const SliverToBoxAdapter(child: SizedBox(height: 12)),
                       if (weeklySummaries.isEmpty)
                         SliverToBoxAdapter(
-                          child: Card(
-                            elevation: 0,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Text(
-                                'ยังไม่มีสรุปรายสัปดาห์',
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
+                          child: emptyState(
+                            context,
+                            icon: Icons.date_range_outlined,
+                            title: 'ยังไม่มีสรุปรายสัปดาห์',
+                            message:
+                                'เพิ่มรายการเดินทางเพื่อดูสรุปแบบรายสัปดาห์',
                           ),
                         )
                       else
@@ -478,21 +450,11 @@ class _TripFeePageState extends State<TripFeePage> {
                       const SliverToBoxAdapter(child: SizedBox(height: 12)),
                       if (monthlySummaries.isEmpty)
                         SliverToBoxAdapter(
-                          child: Card(
-                            elevation: 0,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Text(
-                                'ยังไม่มีสรุปรายเดือน',
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
+                          child: emptyState(
+                            context,
+                            icon: Icons.calendar_month_outlined,
+                            title: 'ยังไม่มีสรุปรายเดือน',
+                            message: 'เพิ่มรายการเดินทางเพื่อดูสรุปแบบรายเดือน',
                           ),
                         )
                       else

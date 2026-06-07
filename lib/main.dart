@@ -69,22 +69,24 @@ class MyAppState extends State<MyApp> {
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.tealAccent,
-          primary: Colors.tealAccent.shade400,
+          primary: Colors.tealAccent.shade200,
           secondary: Colors.amberAccent,
           brightness: Brightness.dark,
+          surface: const Color(0xFF121212),
+          surfaceContainerHighest: const Color(0xFF2C2C2C),
+          onSurface: Colors.white,
         ),
         useMaterial3: true,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.teal.shade900,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1F1F1F),
           foregroundColor: Colors.white,
-          elevation: 4,
-          shadowColor: Colors.black45,
+          elevation: 0,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.tealAccent.shade700,
-            foregroundColor: Colors.white,
-            elevation: 3,
+            backgroundColor: Colors.tealAccent.shade200,
+            foregroundColor: Colors.black87,
+            elevation: 0,
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),

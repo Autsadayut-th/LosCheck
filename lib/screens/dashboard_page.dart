@@ -4,6 +4,8 @@ import '../models/trip_record.dart';
 import '../models/customer_record.dart';
 import '../database/app_database.dart';
 import '../widgets/shimmer_loading.dart';
+import '../core/design_tokens.dart';
+import '../core/theme_extensions.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -94,16 +96,16 @@ class _DashboardPageState extends State<DashboardPage> {
       return const SafeArea(
         child: Center(
           child: Padding(
-            padding: EdgeInsets.all(20),
+            padding: DesignTokens.paddingM,
             child: SingleChildScrollView(
               child: Column(
                 children: [
                   SkeletonCard(height: 120),
-                  SizedBox(height: 16),
+                  SizedBox(height: DesignTokens.spacingM),
                   SkeletonCard(height: 120),
-                  SizedBox(height: 24),
+                  SizedBox(height: DesignTokens.spacingL),
                   SkeletonCard(height: 80),
-                  SizedBox(height: 8),
+                  SizedBox(height: DesignTokens.spacingXs2),
                   SkeletonCard(height: 80),
                 ],
               ),
@@ -118,7 +120,7 @@ class _DashboardPageState extends State<DashboardPage> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: DesignTokens.paddingM,
             child: ListView(
               children: [
                 Text(
@@ -127,7 +129,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: DesignTokens.spacingL),
                 Row(
                   children: [
                     Expanded(
@@ -147,7 +149,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         textColor: Colors.white,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: DesignTokens.spacingM),
                     Expanded(
                       child: _StatCard(
                         title: 'รอบรวม',
@@ -167,7 +169,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignTokens.spacingM),
                 Row(
                   children: [
                     Expanded(
@@ -184,7 +186,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         textColor: Colors.white,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: DesignTokens.spacingM),
                     Expanded(
                       child: _StatCard(
                         title: 'ลูกค้าทั้งหมด',
@@ -204,52 +206,20 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: DesignTokens.spacingXl),
                 Text(
                   'สถิติตามระยะทาง',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: DesignTokens.spacingM),
                 if (_distanceStats.isEmpty)
-                  Card(
-                    elevation: 0,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 40,
-                        horizontal: 16,
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.bar_chart_outlined,
-                            size: 64,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withValues(alpha: 0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'ยังไม่มีข้อมูลสถิติ',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  emptyState(
+                    context,
+                    icon: Icons.bar_chart_outlined,
+                    title: 'ยังไม่มีสถิติ',
+                    message: 'เพิ่มรายการเดินทางเพื่อดูสถิติ',
                   )
                 else
                   ..._distanceStats.map(
@@ -264,7 +234,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-class _StatCard extends StatelessWidget {
+class _StatCard extends StatefulWidget {
   const _StatCard({
     required this.title,
     required this.value,
@@ -282,62 +252,98 @@ class _StatCard extends StatelessWidget {
   final Color textColor;
 
   @override
+  State<_StatCard> createState() => _StatCardState();
+}
+
+class _StatCardState extends State<_StatCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      child: ScaleTransition(
+        scale: _controller.drive(Tween(begin: 1.0, end: 0.98)),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: widget.gradient,
+            borderRadius: DesignTokens.borderRadiusXl,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, color: textColor.withValues(alpha: 0.8), size: 28),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: textColor.withValues(alpha: 0.9),
-                      fontWeight: FontWeight.w600,
+                Row(
+                  children: [
+                    Icon(
+                      widget.icon,
+                      color: widget.textColor.withValues(alpha: 0.8),
+                      size: 28,
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: widget.textColor.withValues(alpha: 0.9),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      widget.value,
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -1,
+                        color: widget.textColor,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.unit,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: widget.textColor.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: textColor,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  unit,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: textColor.withValues(alpha: 0.8),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -353,14 +359,14 @@ class _DistanceStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: EdgeInsets.only(bottom: DesignTokens.spacingXs2),
+      shape: RoundedRectangleBorder(borderRadius: DesignTokens.borderRadiusLg),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: DesignTokens.paddingM,
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(DesignTokens.spacingS),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primaryContainer,
                 shape: BoxShape.circle,
@@ -370,7 +376,7 @@ class _DistanceStatCard extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onPrimaryContainer,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: DesignTokens.spacingM),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,7 +387,7 @@ class _DistanceStatCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: DesignTokens.spacingXs),
                   Text(
                     '${stat.count} รอบ',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
