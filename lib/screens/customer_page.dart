@@ -32,7 +32,7 @@ class _CustomerPageState extends State<CustomerPage> {
   String _debouncedPhoneFilter = '';
   bool _isLoading = true;
 
-  bool get _canFillDetails => _phoneInput.trim().isNotEmpty;
+  bool get _canFillDetails => _phoneController.text.trim().isNotEmpty;
 
   String get _activePhoneFilter {
     final manualFilter = _debouncedPhoneFilter.trim();
@@ -73,7 +73,12 @@ class _CustomerPageState extends State<CustomerPage> {
 
   void _onPhoneInputChanged() {
     final nextPhoneInput = _phoneController.text;
+    final phoneChanged = _phoneInput != nextPhoneInput;
     _phoneInput = nextPhoneInput;
+
+    if (phoneChanged) {
+      setState(() {});
+    }
 
     _scheduleFilterRefresh(
       phoneInput: nextPhoneInput,
@@ -99,6 +104,25 @@ class _CustomerPageState extends State<CustomerPage> {
         _debouncedPhoneInput = phoneInput;
         _debouncedPhoneFilter = phoneFilter;
       });
+    });
+  }
+
+  void _clearPhoneFilter() {
+    _phoneFilterController.clear();
+    _filterDebounce?.cancel();
+    setState(() {
+      _debouncedPhoneFilter = '';
+    });
+  }
+
+  void _clearActiveFilters() {
+    _phoneController.clear();
+    _phoneFilterController.clear();
+    _filterDebounce?.cancel();
+    setState(() {
+      _phoneInput = '';
+      _debouncedPhoneInput = '';
+      _debouncedPhoneFilter = '';
     });
   }
 
@@ -135,23 +159,6 @@ class _CustomerPageState extends State<CustomerPage> {
     }
   }
 
-  Future<void> _saveRecords() async {
-    try {
-      for (final record in _records) {
-        await appDatabase.insertCustomer(record);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-
   Future<void> _saveCustomer() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -176,7 +183,9 @@ class _CustomerPageState extends State<CustomerPage> {
         _debouncedPhoneFilter = '';
       });
 
-      await _saveRecords();
+      // Persist only the newly added/edited record. `insertCustomer` uses
+      // onConflict: DoUpdate, so it also doubles as an upsert.
+      await appDatabase.insertCustomer(record);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -297,7 +306,7 @@ class _CustomerPageState extends State<CustomerPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.network(record.imageUrl!),
-              ButtonBar(
+              OverflowBar(
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -329,17 +338,20 @@ class _CustomerPageState extends State<CustomerPage> {
     final index = _records.indexOf(record);
     if (index == -1) return;
 
+    final updated = CustomerRecord(
+      phone: record.phone,
+      name: record.name,
+      address: record.address,
+      createdAt: record.createdAt,
+      imageUrl: pickedFile.path,
+    );
+
     setState(() {
-      _records[index] = CustomerRecord(
-        phone: record.phone,
-        name: record.name,
-        address: record.address,
-        createdAt: record.createdAt,
-        imageUrl: pickedFile.path,
-      );
+      _records[index] = updated;
     });
 
-    await _saveRecords();
+    // Persist only the affected record.
+    await appDatabase.insertCustomer(updated);
   }
 
   @override
@@ -416,7 +428,7 @@ class _CustomerPageState extends State<CustomerPage> {
                                 ? null
                                 : IconButton(
                                     tooltip: 'ล้างคำค้นหา',
-                                    onPressed: _phoneFilterController.clear,
+                                    onPressed: _clearPhoneFilter,
                                     icon: const Icon(Icons.clear),
                                   ),
                           ),
@@ -437,12 +449,7 @@ class _CustomerPageState extends State<CustomerPage> {
                             ),
                             if (activePhoneFilter.isNotEmpty)
                               TextButton.icon(
-                                onPressed: () {
-                                  setState(() {
-                                    _phoneFilterController.clear();
-                                    _phoneController.clear();
-                                  });
-                                },
+                                onPressed: _clearActiveFilters,
                                 icon: const Icon(Icons.filter_alt_off_outlined),
                                 label: const Text('ล้างตัวกรอง'),
                               ),

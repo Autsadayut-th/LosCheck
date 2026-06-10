@@ -38,6 +38,17 @@ class $CustomerRecordsTable extends CustomerRecords
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _imageUrlMeta = const VerificationMeta(
+    'imageUrl',
+  );
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+    'image_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -50,7 +61,13 @@ class $CustomerRecordsTable extends CustomerRecords
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [phone, name, address, createdAt];
+  List<GeneratedColumn> get $columns => [
+    phone,
+    name,
+    address,
+    imageUrl,
+    createdAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -87,6 +104,12 @@ class $CustomerRecordsTable extends CustomerRecords
     } else if (isInserting) {
       context.missing(_addressMeta);
     }
+    if (data.containsKey('image_url')) {
+      context.handle(
+        _imageUrlMeta,
+        imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -116,6 +139,10 @@ class $CustomerRecordsTable extends CustomerRecords
         DriftSqlType.string,
         data['${effectivePrefix}address'],
       )!,
+      imageUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}image_url'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -134,11 +161,13 @@ class CustomerRecordData extends DataClass
   final String phone;
   final String name;
   final String address;
+  final String? imageUrl;
   final DateTime createdAt;
   const CustomerRecordData({
     required this.phone,
     required this.name,
     required this.address,
+    this.imageUrl,
     required this.createdAt,
   });
   @override
@@ -147,6 +176,9 @@ class CustomerRecordData extends DataClass
     map['phone'] = Variable<String>(phone);
     map['name'] = Variable<String>(name);
     map['address'] = Variable<String>(address);
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -156,6 +188,9 @@ class CustomerRecordData extends DataClass
       phone: Value(phone),
       name: Value(name),
       address: Value(address),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
       createdAt: Value(createdAt),
     );
   }
@@ -169,6 +204,7 @@ class CustomerRecordData extends DataClass
       phone: serializer.fromJson<String>(json['phone']),
       name: serializer.fromJson<String>(json['name']),
       address: serializer.fromJson<String>(json['address']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -179,6 +215,7 @@ class CustomerRecordData extends DataClass
       'phone': serializer.toJson<String>(phone),
       'name': serializer.toJson<String>(name),
       'address': serializer.toJson<String>(address),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -187,11 +224,13 @@ class CustomerRecordData extends DataClass
     String? phone,
     String? name,
     String? address,
+    Value<String?> imageUrl = const Value.absent(),
     DateTime? createdAt,
   }) => CustomerRecordData(
     phone: phone ?? this.phone,
     name: name ?? this.name,
     address: address ?? this.address,
+    imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
     createdAt: createdAt ?? this.createdAt,
   );
   CustomerRecordData copyWithCompanion(CustomerRecordsCompanion data) {
@@ -199,6 +238,7 @@ class CustomerRecordData extends DataClass
       phone: data.phone.present ? data.phone.value : this.phone,
       name: data.name.present ? data.name.value : this.name,
       address: data.address.present ? data.address.value : this.address,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -209,13 +249,14 @@ class CustomerRecordData extends DataClass
           ..write('phone: $phone, ')
           ..write('name: $name, ')
           ..write('address: $address, ')
+          ..write('imageUrl: $imageUrl, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(phone, name, address, createdAt);
+  int get hashCode => Object.hash(phone, name, address, imageUrl, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -223,6 +264,7 @@ class CustomerRecordData extends DataClass
           other.phone == this.phone &&
           other.name == this.name &&
           other.address == this.address &&
+          other.imageUrl == this.imageUrl &&
           other.createdAt == this.createdAt);
 }
 
@@ -230,12 +272,14 @@ class CustomerRecordsCompanion extends UpdateCompanion<CustomerRecordData> {
   final Value<String> phone;
   final Value<String> name;
   final Value<String> address;
+  final Value<String?> imageUrl;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const CustomerRecordsCompanion({
     this.phone = const Value.absent(),
     this.name = const Value.absent(),
     this.address = const Value.absent(),
+    this.imageUrl = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -243,6 +287,7 @@ class CustomerRecordsCompanion extends UpdateCompanion<CustomerRecordData> {
     required String phone,
     required String name,
     required String address,
+    this.imageUrl = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   }) : phone = Value(phone),
@@ -253,6 +298,7 @@ class CustomerRecordsCompanion extends UpdateCompanion<CustomerRecordData> {
     Expression<String>? phone,
     Expression<String>? name,
     Expression<String>? address,
+    Expression<String>? imageUrl,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -260,6 +306,7 @@ class CustomerRecordsCompanion extends UpdateCompanion<CustomerRecordData> {
       if (phone != null) 'phone': phone,
       if (name != null) 'name': name,
       if (address != null) 'address': address,
+      if (imageUrl != null) 'image_url': imageUrl,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -269,6 +316,7 @@ class CustomerRecordsCompanion extends UpdateCompanion<CustomerRecordData> {
     Value<String>? phone,
     Value<String>? name,
     Value<String>? address,
+    Value<String?>? imageUrl,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -276,6 +324,7 @@ class CustomerRecordsCompanion extends UpdateCompanion<CustomerRecordData> {
       phone: phone ?? this.phone,
       name: name ?? this.name,
       address: address ?? this.address,
+      imageUrl: imageUrl ?? this.imageUrl,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -293,6 +342,9 @@ class CustomerRecordsCompanion extends UpdateCompanion<CustomerRecordData> {
     if (address.present) {
       map['address'] = Variable<String>(address.value);
     }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -308,6 +360,7 @@ class CustomerRecordsCompanion extends UpdateCompanion<CustomerRecordData> {
           ..write('phone: $phone, ')
           ..write('name: $name, ')
           ..write('address: $address, ')
+          ..write('imageUrl: $imageUrl, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -693,6 +746,7 @@ typedef $$CustomerRecordsTableCreateCompanionBuilder =
       required String phone,
       required String name,
       required String address,
+      Value<String?> imageUrl,
       required DateTime createdAt,
       Value<int> rowid,
     });
@@ -701,6 +755,7 @@ typedef $$CustomerRecordsTableUpdateCompanionBuilder =
       Value<String> phone,
       Value<String> name,
       Value<String> address,
+      Value<String?> imageUrl,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -726,6 +781,11 @@ class $$CustomerRecordsTableFilterComposer
 
   ColumnFilters<String> get address => $composableBuilder(
     column: $table.address,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -759,6 +819,11 @@ class $$CustomerRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+    column: $table.imageUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -782,6 +847,9 @@ class $$CustomerRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get address =>
       $composableBuilder(column: $table.address, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -827,12 +895,14 @@ class $$CustomerRecordsTableTableManager
                 Value<String> phone = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> address = const Value.absent(),
+                Value<String?> imageUrl = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CustomerRecordsCompanion(
                 phone: phone,
                 name: name,
                 address: address,
+                imageUrl: imageUrl,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -841,12 +911,14 @@ class $$CustomerRecordsTableTableManager
                 required String phone,
                 required String name,
                 required String address,
+                Value<String?> imageUrl = const Value.absent(),
                 required DateTime createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => CustomerRecordsCompanion.insert(
                 phone: phone,
                 name: name,
                 address: address,
+                imageUrl: imageUrl,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

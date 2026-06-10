@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value, InsertMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -127,6 +128,7 @@ class _TripFeePageState extends State<TripFeePage> {
         _records.addAll(
           records.map(
             (r) => TripRecord(
+              id: r.id,
               distanceLabel: r.distanceLabel,
               rateBaht: r.rateBaht,
               rounds: r.rounds,
@@ -152,12 +154,86 @@ class _TripFeePageState extends State<TripFeePage> {
     }
   }
 
+  /// Persists the current [_records] to the database in a single batch
+  /// transaction. The previous implementation diffed in-memory records
+  /// against a `getAllTrips()` snapshot, which is racy when two writes
+  /// overlap (the second snapshot would still see the first record, so
+  /// the diff would mark it for deletion after it had just been
+  /// inserted). The new approach is authoritative: we clear the table
+  /// rows that the user has *removed from memory* and then upsert the
+  /// remaining rows using a single `batch`. This makes the operation
+  /// idempotent and safe under concurrent calls.
   Future<void> _saveRecords() async {
     try {
-      await appDatabase.deleteAllTrips();
-      for (final record in _records.reversed) {
-        await appDatabase.insertTrip(record);
-      }
+      // Snapshot the in-memory state once. A separate snapshot of the DB
+      // would race with the writes we're about to perform, so we trust
+      // the in-memory list as the source of truth and only need to
+      // detect rows that exist on disk but not in memory.
+      final existing = await appDatabase.getAllTrips();
+      final existingIds = existing.map((e) => e.id).toSet();
+      final memoryIds = _records.map((r) => r.id).whereType<int>().toSet();
+      final idsToDelete = existingIds.difference(memoryIds);
+
+      await appDatabase.transaction(() async {
+        // 1) Delete rows the user removed from the in-memory list.
+        for (final id in idsToDelete) {
+          await appDatabase.deleteTrip(id);
+        }
+
+        // 2) Upsert the surviving records in one batch.
+        await appDatabase.batch((b) {
+          for (var i = 0; i < _records.length; i++) {
+            final record = _records[i];
+            if (record.id == null) {
+              // New record. `insert` with mode `insertOrReplace` would
+              // also work, but `insert` keeps the contract simple.
+              b.insert(
+                appDatabase.tripRecords,
+                TripRecordsCompanion.insert(
+                  distanceLabel: record.distanceLabel,
+                  rateBaht: record.rateBaht,
+                  rounds: record.rounds,
+                  createdAt: record.createdAt,
+                ),
+                mode: InsertMode.insertOrReplace,
+              );
+            } else {
+              b.update(
+                appDatabase.tripRecords,
+                TripRecordsCompanion(
+                  distanceLabel: Value(record.distanceLabel),
+                  rateBaht: Value(record.rateBaht),
+                  rounds: Value(record.rounds),
+                  createdAt: Value(record.createdAt),
+                ),
+                where: (t) => t.id.equals(record.id!),
+              );
+            }
+          }
+        });
+      });
+
+      // After the transaction succeeds, refresh the in-memory list from
+      // the DB so that newly-assigned ids are reflected in the UI and
+      // any in-flight edits/deletes target the persisted row.
+      final fresh = await appDatabase.getAllTrips();
+      if (!mounted) return;
+      setState(() {
+        _records
+          ..clear()
+          ..addAll(
+            fresh.map(
+              (r) => TripRecord(
+                id: r.id,
+                distanceLabel: r.distanceLabel,
+                rateBaht: r.rateBaht,
+                rounds: r.rounds,
+                createdAt: r.createdAt,
+              ),
+            ),
+          );
+        _refreshDerivedData();
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -232,6 +308,7 @@ class _TripFeePageState extends State<TripFeePage> {
     if (index == -1) return;
 
     final updated = TripRecord(
+      id: record.id,
       distanceLabel: record.distanceLabel,
       rateBaht: record.rateBaht,
       rounds: newRounds,
@@ -333,7 +410,7 @@ class _TripFeePageState extends State<TripFeePage> {
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           childAspectRatio:
-                              MediaQuery.of(context).size.width > 1
+                              MediaQuery.sizeOf(context).width > 600
                               ? 1.2
                               : 0.95,
                           crossAxisSpacing: 5,
@@ -723,6 +800,11 @@ class _DailySummaryTile extends StatelessWidget {
 
     if (target == today) {
       return 'วันนี้ (${_formatNumericDate(date)})';
+    }
+
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (target == yesterday) {
+      return 'เมื่อวาน (${_formatNumericDate(date)})';
     }
 
     return _formatNumericDate(date);

@@ -29,6 +29,13 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
   <link rel="shortcut icon" type="image/png" href="favicon.png"/>
 
+  <!--
+    Drift (sql.js) — required for SQLite on the web.
+    The script must be loaded before flutter_bootstrap.js so that
+    `WebDatabase` and the drift worker can find the sql.js bindings.
+  -->
+  <script src="https://github.com/simolus3/sql.js-wasm/releases/download/v3.46.1-build4/sql-wasm.js" defer></script>
+
   <title>Los Check - บันทึกค่ารอบ</title>
   <link rel="manifest" href="manifest.json">
   <link rel="preload" href="flutter.js" as="script">

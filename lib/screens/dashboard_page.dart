@@ -7,79 +7,128 @@ import '../widgets/shimmer_loading.dart';
 import '../core/design_tokens.dart';
 import '../core/theme_extensions.dart';
 
-class DashboardPage extends StatefulWidget {
+class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  Widget build(BuildContext context) {
+    // Use StreamBuilder so the dashboard stays in sync whenever trips or
+    // customers change in the DB. No manual init/refresh needed.
+    return SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: StreamBuilder<List<TripRecordData>>(
+            stream: appDatabase.watchAllTrips(),
+            builder: (context, tripsSnapshot) {
+              return StreamBuilder<List<CustomerRecordData>>(
+                stream: appDatabase.watchAllCustomers(),
+                builder: (context, customersSnapshot) {
+                  if (tripsSnapshot.connectionState ==
+                          ConnectionState.waiting ||
+                      customersSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                    return _buildLoading();
+                  }
+
+                  if (tripsSnapshot.hasError || customersSnapshot.hasError) {
+                    return _buildError(
+                      tripsSnapshot.error ?? customersSnapshot.error,
+                    );
+                  }
+
+                  final tripRecords = (tripsSnapshot.data ?? const [])
+                      .map(
+                        (t) => TripRecord(
+                          id: t.id,
+                          distanceLabel: t.distanceLabel,
+                          rateBaht: t.rateBaht,
+                          rounds: t.rounds,
+                          createdAt: t.createdAt,
+                        ),
+                      )
+                      .toList();
+
+                  final customerRecords = (customersSnapshot.data ?? const [])
+                      .map(
+                        (c) => CustomerRecord(
+                          phone: c.phone,
+                          name: c.name,
+                          address: c.address,
+                          createdAt: c.createdAt,
+                          imageUrl: null,
+                        ),
+                      )
+                      .toList();
+
+                  return _DashboardContent(
+                    tripRecords: tripRecords,
+                    customerRecords: customerRecords,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoading() {
+    return Padding(
+      padding: DesignTokens.paddingM,
+      child: SingleChildScrollView(
+        child: Column(
+          children: const [
+            SkeletonCard(height: 120),
+            SizedBox(height: DesignTokens.spacingM),
+            SkeletonCard(height: 120),
+            SizedBox(height: DesignTokens.spacingL),
+            SkeletonCard(height: 80),
+            SizedBox(height: DesignTokens.spacingXs2),
+            SkeletonCard(height: 80),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError(Object? error) {
+    return Center(
+      child: Padding(
+        padding: DesignTokens.paddingL,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('เกิดข้อผิดพลาด: ${error ?? 'ไม่ทราบสาเหตุ'}'),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _DashboardPageState extends State<DashboardPage> {
-  final List<TripRecord> _tripRecords = [];
-  final List<CustomerRecord> _customerRecords = [];
-  bool _isLoading = true;
+class _DashboardContent extends StatelessWidget {
+  const _DashboardContent({
+    required this.tripRecords,
+    required this.customerRecords,
+  });
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
+  final List<TripRecord> tripRecords;
+  final List<CustomerRecord> customerRecords;
 
-  Future<void> _loadData() async {
-    try {
-      final trips = await appDatabase.getAllTrips();
-      final customers = await appDatabase.getAllCustomers();
-      if (!mounted) return;
-      setState(() {
-        _tripRecords.clear();
-        _tripRecords.addAll(
-          trips.map(
-            (t) => TripRecord(
-              distanceLabel: t.distanceLabel,
-              rateBaht: t.rateBaht,
-              rounds: t.rounds,
-              createdAt: t.createdAt,
-            ),
-          ),
-        );
-        _customerRecords.clear();
-        _customerRecords.addAll(
-          customers.map(
-            (c) => CustomerRecord(
-              phone: c.phone,
-              name: c.name,
-              address: c.address,
-              createdAt: c.createdAt,
-            ),
-          ),
-        );
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-
-  int get _totalTripRecords => _tripRecords.length;
-  int get _totalCustomerRecords => _customerRecords.length;
+  int get _totalTripRecords => tripRecords.length;
+  int get _totalCustomerRecords => customerRecords.length;
   int get _totalRevenue =>
-      _tripRecords.fold<int>(0, (sum, record) => sum + record.totalBaht);
+      tripRecords.fold<int>(0, (sum, record) => sum + record.totalBaht);
   int get _totalRounds =>
-      _tripRecords.fold<int>(0, (sum, record) => sum + record.rounds);
+      tripRecords.fold<int>(0, (sum, record) => sum + record.rounds);
 
   List<_DistanceStats> get _distanceStats {
     final stats = <String, _DistanceStats>{};
-    for (final record in _tripRecords) {
+    for (final record in tripRecords) {
       stats.putIfAbsent(
         record.distanceLabel,
         () => _DistanceStats(label: record.distanceLabel, count: 0, total: 0),
@@ -92,143 +141,102 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const SafeArea(
-        child: Center(
-          child: Padding(
-            padding: DesignTokens.paddingM,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  SkeletonCard(height: 120),
-                  SizedBox(height: DesignTokens.spacingM),
-                  SkeletonCard(height: 120),
-                  SizedBox(height: DesignTokens.spacingL),
-                  SkeletonCard(height: 80),
-                  SizedBox(height: DesignTokens.spacingXs2),
-                  SkeletonCard(height: 80),
-                ],
+    return Padding(
+      padding: DesignTokens.paddingM,
+      child: ListView(
+        children: [
+          Text(
+            'ภาพรวม',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: DesignTokens.spacingL),
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  title: 'รายได้รวม',
+                  value: '$_totalRevenue',
+                  unit: 'บาท',
+                  icon: Icons.attach_money,
+                  gradient: LinearGradient(
+                    colors: [Colors.amber.shade700, Colors.amber.shade400],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  textColor: Colors.white,
+                ),
               ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Padding(
-            padding: DesignTokens.paddingM,
-            child: ListView(
-              children: [
-                Text(
-                  'ภาพรวม',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+              SizedBox(width: DesignTokens.spacingM),
+              Expanded(
+                child: _StatCard(
+                  title: 'รอบรวม',
+                  value: '$_totalRounds',
+                  unit: 'รอบ',
+                  icon: Icons.local_shipping,
+                  gradient: LinearGradient(
+                    colors: [Colors.orange.shade800, Colors.orange.shade400],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  textColor: Colors.white,
                 ),
-                SizedBox(height: DesignTokens.spacingL),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        title: 'รายได้รวม',
-                        value: '$_totalRevenue',
-                        unit: 'บาท',
-                        icon: Icons.attach_money,
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.amber.shade700,
-                            Colors.amber.shade400,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        textColor: Colors.white,
-                      ),
-                    ),
-                    SizedBox(width: DesignTokens.spacingM),
-                    Expanded(
-                      child: _StatCard(
-                        title: 'รอบรวม',
-                        value: '$_totalRounds',
-                        unit: 'รอบ',
-                        icon: Icons.local_shipping,
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.orange.shade800,
-                            Colors.orange.shade400,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        textColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: DesignTokens.spacingM),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        title: 'รายการทั้งหมด',
-                        value: '$_totalTripRecords',
-                        unit: 'รายการ',
-                        icon: Icons.receipt_long,
-                        gradient: LinearGradient(
-                          colors: [Colors.teal.shade800, Colors.teal.shade400],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        textColor: Colors.white,
-                      ),
-                    ),
-                    SizedBox(width: DesignTokens.spacingM),
-                    Expanded(
-                      child: _StatCard(
-                        title: 'ลูกค้าทั้งหมด',
-                        value: '$_totalCustomerRecords',
-                        unit: 'คน',
-                        icon: Icons.people,
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.indigo.shade800,
-                            Colors.indigo.shade400,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        textColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: DesignTokens.spacingXl),
-                Text(
-                  'สถิติตามระยะทาง',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: DesignTokens.spacingM),
-                if (_distanceStats.isEmpty)
-                  emptyState(
-                    context,
-                    icon: Icons.bar_chart_outlined,
-                    title: 'ยังไม่มีสถิติ',
-                    message: 'เพิ่มรายการเดินทางเพื่อดูสถิติ',
-                  )
-                else
-                  ..._distanceStats.map(
-                    (stat) => _DistanceStatCard(stat: stat),
-                  ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
+          SizedBox(height: DesignTokens.spacingM),
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  title: 'รายการทั้งหมด',
+                  value: '$_totalTripRecords',
+                  unit: 'รายการ',
+                  icon: Icons.receipt_long,
+                  gradient: LinearGradient(
+                    colors: [Colors.teal.shade800, Colors.teal.shade400],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  textColor: Colors.white,
+                ),
+              ),
+              SizedBox(width: DesignTokens.spacingM),
+              Expanded(
+                child: _StatCard(
+                  title: 'ลูกค้าทั้งหมด',
+                  value: '$_totalCustomerRecords',
+                  unit: 'คน',
+                  icon: Icons.people,
+                  gradient: LinearGradient(
+                    colors: [Colors.indigo.shade800, Colors.indigo.shade400],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  textColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: DesignTokens.spacingXl),
+          Text(
+            'สถิติตามระยะทาง',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: DesignTokens.spacingM),
+          if (_distanceStats.isEmpty)
+            emptyState(
+              context,
+              icon: Icons.bar_chart_outlined,
+              title: 'ยังไม่มีสถิติ',
+              message: 'เพิ่มรายการเดินทางเพื่อดูสถิติ',
+            )
+          else
+            ..._distanceStats.map((stat) => _DistanceStatCard(stat: stat)),
+        ],
       ),
     );
   }

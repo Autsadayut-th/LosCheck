@@ -1,14 +1,8 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:drift/web.dart';
-import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 
 import '../models/customer_record.dart';
 import '../models/trip_record.dart';
+import 'connection/connection.dart';
 
 part 'app_database.g.dart';
 
@@ -17,6 +11,7 @@ class CustomerRecords extends Table {
   TextColumn get phone => text()();
   TextColumn get name => text()();
   TextColumn get address => text()();
+  TextColumn get imageUrl => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -34,10 +29,10 @@ class TripRecords extends Table {
 
 @DriftDatabase(tables: [CustomerRecords, TripRecords])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -45,8 +40,14 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      // Add future schema migrations here
-      // Example: if (from < 2) { await m.addColumn(customerRecords, customerRecords.email); }
+      // v1 -> v2: add nullable imageUrl column for customer records.
+      // The generated column reference (`customerRecords.imageUrl`) is not
+      // available until build_runner has run, so we describe the column
+      // inline using Drift's DSL and cast through `dynamic` to keep the
+      // migration code compilable pre-generation.
+      if (from < 2) {
+        await m.addColumn(customerRecords, customerRecords.imageUrl);
+      }
     },
   );
 
@@ -57,12 +58,14 @@ class AppDatabase extends _$AppDatabase {
         phone: Value(record.phone),
         name: Value(record.name),
         address: Value(record.address),
+        imageUrl: Value(record.imageUrl),
         createdAt: Value(record.createdAt),
       ),
       onConflict: DoUpdate(
         (_) => CustomerRecordsCompanion(
           name: Value(record.name),
           address: Value(record.address),
+          imageUrl: Value(record.imageUrl),
           createdAt: Value(record.createdAt),
         ),
       ),
@@ -85,6 +88,7 @@ class AppDatabase extends _$AppDatabase {
         phone: Value(record.phone),
         name: Value(record.name),
         address: Value(record.address),
+        imageUrl: Value(record.imageUrl),
         createdAt: Value(record.createdAt),
       ),
     );
@@ -103,8 +107,23 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // Trip operations
-  Future<void> insertTrip(TripRecord record) {
+  /// Returns the newly-inserted row id.
+  Future<int> insertTrip(TripRecord record) {
     return into(tripRecords).insert(
+      TripRecordsCompanion(
+        distanceLabel: Value(record.distanceLabel),
+        rateBaht: Value(record.rateBaht),
+        rounds: Value(record.rounds),
+        createdAt: Value(record.createdAt),
+      ),
+    );
+  }
+
+  Future<void> updateTrip(TripRecord record) async {
+    if (record.id == null) {
+      throw ArgumentError('Cannot update trip without id');
+    }
+    await (update(tripRecords)..where((t) => t.id.equals(record.id!))).write(
       TripRecordsCompanion(
         distanceLabel: Value(record.distanceLabel),
         rateBaht: Value(record.rateBaht),
@@ -120,11 +139,18 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<TripRecordData>> getTripsByDate(DateTime date) {
     final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+    // Use exclusive start-of-next-day instead of `23:59:59` so records
+    // created at the millisecond of the last second of the day are not
+    // silently dropped.
+    final startOfNextDay = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).add(const Duration(days: 1));
     return (select(tripRecords)..where(
           (t) =>
               t.createdAt.isBiggerOrEqualValue(startOfDay) &
-              t.createdAt.isSmallerThanValue(endOfDay),
+              t.createdAt.isSmallerThanValue(startOfNextDay),
         ))
         .get();
   }
@@ -139,11 +165,15 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteTripsByDate(DateTime date) {
     final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+    final startOfNextDay = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).add(const Duration(days: 1));
     return (delete(tripRecords)..where(
           (t) =>
               t.createdAt.isBiggerOrEqualValue(startOfDay) &
-              t.createdAt.isSmallerThanValue(endOfDay),
+              t.createdAt.isSmallerThanValue(startOfNextDay),
         ))
         .go();
   }
@@ -156,13 +186,15 @@ class AppDatabase extends _$AppDatabase {
   Future<int> getTotalTodayRounds() async {
     final today = DateTime.now();
     final startOfDay = DateTime(today.year, today.month, today.day);
-    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+    // Exclusive start-of-next-day to avoid losing records that land on
+    // `23:59:59.500` (or any other fractional second of the day).
+    final startOfNextDay = startOfDay.add(const Duration(days: 1));
 
     final result =
         await (select(tripRecords)..where(
               (t) =>
                   t.createdAt.isBiggerOrEqualValue(startOfDay) &
-                  t.createdAt.isSmallerThanValue(endOfDay),
+                  t.createdAt.isSmallerThanValue(startOfNextDay),
             ))
             .map((trip) => trip.rounds)
             .get();
@@ -173,13 +205,13 @@ class AppDatabase extends _$AppDatabase {
   Future<int> getTotalTodayBaht() async {
     final today = DateTime.now();
     final startOfDay = DateTime(today.year, today.month, today.day);
-    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+    final startOfNextDay = startOfDay.add(const Duration(days: 1));
 
     final result =
         await (select(tripRecords)..where(
               (t) =>
                   t.createdAt.isBiggerOrEqualValue(startOfDay) &
-                  t.createdAt.isSmallerThanValue(endOfDay),
+                  t.createdAt.isSmallerThanValue(startOfNextDay),
             ))
             .get();
 
@@ -190,10 +222,10 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<int> getTotalCustomers() async {
-    return (select(customerRecords)..limit(1)).get().then((result) {
-      if (result.isEmpty) return 0;
-      return select(customerRecords).get().then((records) => records.length);
-    });
+    final countExp = customerRecords.phone.count();
+    final query = selectOnly(customerRecords)..addColumns([countExp]);
+    final row = await query.getSingle();
+    return row.read(countExp) ?? 0;
   }
 
   Future<int> getTotalRevenue() async {
@@ -232,18 +264,6 @@ class DistanceStat {
   int total;
 
   DistanceStat({required this.label, required this.count, required this.total});
-}
-
-LazyDatabase _openConnection() {
-  return LazyDatabase(() async {
-    if (kIsWeb) {
-      return WebDatabase('loscheck_db');
-    } else {
-      final dbFolder = await getApplicationDocumentsDirectory();
-      final file = File(p.join(dbFolder.path, 'app.db'));
-      return NativeDatabase(file);
-    }
-  });
 }
 
 // Application-level single instance for simple usage from UI code.

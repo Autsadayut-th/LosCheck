@@ -1,9 +1,6 @@
-/// Design System Tokens - Single source of truth for LosCheck
-///
-/// Use these tokens instead of magic numbers/colors to maintain
-/// visual consistency and make future theme changes effortless.
-library design_tokens;
-
+// Design System Tokens - Single source of truth for LosCheck.
+// Use these tokens instead of magic numbers/colors to maintain
+// visual consistency and make future theme changes effortless.
 import 'package:flutter/material.dart';
 
 /// Comprehensive Design Tokens for LosCheck

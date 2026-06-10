@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loscheck/database/app_database.dart';
 import 'package:loscheck/main.dart';
+
+import 'test_helpers.dart';
 
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  setUp(() async {
     // ignore: deprecated_member_use
     binding.window.physicalSizeTestValue = const Size(1200, 1600);
     // ignore: deprecated_member_use
     binding.window.devicePixelRatioTestValue = 1.0;
+    await appDatabase.deleteAllCustomers();
+    await appDatabase.deleteAllTrips();
+  });
+
+  tearDown(() async {
+    await appDatabase.deleteAllCustomers();
+    await appDatabase.deleteAllTrips();
   });
 
   group('Integration Tests', () {
@@ -20,6 +30,7 @@ void main() {
       expect(find.text('Los Check'), findsOneWidget);
       expect(find.text('ค่ารอบ'), findsOneWidget);
       expect(find.text('ลูกค้า'), findsOneWidget);
+      await disposeAppTree(tester);
     });
 
     testWidgets('navigates between tabs', (tester) async {
@@ -179,6 +190,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.dark_mode), findsOneWidget);
+      await disposeAppTree(tester);
     });
 
     testWidgets('clear today flow removes all today records', (tester) async {
@@ -240,6 +252,8 @@ void main() {
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.byKey(const Key('customerPhoneField')));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0898765432',
@@ -254,6 +268,8 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '456 ถนนสีลม',
       );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('saveCustomerButton')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
       await tester.pumpAndSettle();
@@ -271,7 +287,6 @@ void main() {
       // Clear search
       await tester.tap(find.byIcon(Icons.filter_alt_off_outlined));
       await tester.pumpAndSettle();
-
       expect(find.text('สมชาย'), findsOneWidget);
       expect(find.text('มานี'), findsOneWidget);
     });

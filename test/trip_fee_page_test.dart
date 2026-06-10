@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loscheck/database/app_database.dart';
 import 'package:loscheck/screens/trip_fee_page.dart';
 import 'package:loscheck/widgets/rounds_dialog.dart';
 
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  setUp(() async {
     // ignore: deprecated_member_use
     binding.window.physicalSizeTestValue = const Size(1200, 1600);
     // ignore: deprecated_member_use
     binding.window.devicePixelRatioTestValue = 1.0;
+    await appDatabase.deleteAllCustomers();
+    await appDatabase.deleteAllTrips();
   });
 
-  tearDown(() {
+  tearDown(() async {
+    await appDatabase.deleteAllCustomers();
+    await appDatabase.deleteAllTrips();
     // ignore: deprecated_member_use
     binding.window.clearPhysicalSizeTestValue();
     // ignore: deprecated_member_use

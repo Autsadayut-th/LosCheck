@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:loscheck/database/app_database.dart';
 import 'package:loscheck/main.dart';
+
+import 'test_helpers.dart';
 
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  setUp(() async {
     // ignore: deprecated_member_use
     binding.window.physicalSizeTestValue = const Size(1200, 1600);
     // ignore: deprecated_member_use
     binding.window.devicePixelRatioTestValue = 1.0;
+    await appDatabase.deleteAllCustomers();
+    await appDatabase.deleteAllTrips();
+  });
+
+  tearDown(() async {
+    await appDatabase.deleteAllCustomers();
+    await appDatabase.deleteAllTrips();
   });
 
   testWidgets('adds multiple trip fees and shows today total', (
@@ -49,6 +59,7 @@ void main() {
     // TODO: Implement Drift database loading test
     await tester.pumpWidget(const MyApp());
     await tester.pumpAndSettle();
+    await disposeAppTree(tester);
   });
 
   testWidgets('saves customer phone name and address', (
@@ -66,7 +77,7 @@ void main() {
       find.byKey(const Key('customerPhoneField')),
       '0812345678',
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('customerNameField')), 'สมชาย');
     await tester.enterText(
       find.byKey(const Key('customerAddressField')),
@@ -88,6 +99,7 @@ void main() {
     // TODO: Implement Drift database loading test
     await tester.pumpWidget(const MyApp());
     await tester.pumpAndSettle();
+    await disposeAppTree(tester);
   });
 
   testWidgets('filters saved customer records by phone number', (
@@ -96,6 +108,7 @@ void main() {
     // TODO: Implement Drift database loading test
     await tester.pumpWidget(const MyApp());
     await tester.pumpAndSettle();
+    await disposeAppTree(tester);
   });
 
   testWidgets('shows validation when rounds are invalid', (

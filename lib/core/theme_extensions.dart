@@ -1,7 +1,5 @@
-/// Theme Extensions & Helper Functions
-/// Makes it easy to use design system tokens throughout the app
-library theme_extensions;
-
+// Theme Extensions & Helper Functions.
+// Makes it easy to use design system tokens throughout the app.
 import 'package:flutter/material.dart';
 import 'design_tokens.dart';
 
@@ -160,7 +158,7 @@ Widget emptyState(
           SizedBox(height: DesignTokens.spacingL),
           Text(
             title,
-            style: context.textStyles.headingSecondary?.copyWith(
+            style: context.textStyles.headingSecondary.copyWith(
               color: context.colors.onSurface,
             ),
             textAlign: TextAlign.center,
@@ -168,7 +166,7 @@ Widget emptyState(
           SizedBox(height: DesignTokens.spacingS),
           Text(
             message,
-            style: context.textStyles.bodySmallText?.copyWith(
+            style: context.textStyles.bodySmallText.copyWith(
               color: context.colors.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
