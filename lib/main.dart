@@ -211,7 +211,13 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: KeyedSubtree(
+          key: ValueKey<int>(_selectedIndex),
+          child: _pages[_selectedIndex],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {

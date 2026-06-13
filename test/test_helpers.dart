@@ -29,7 +29,7 @@ Future<void> pumpApp(WidgetTester tester) async {
   await tester.pump();
 }
 
-/// Unmounts the app and drains async timers left by Drift streams or debounce.
+/// Unmounts the app and drains async timers left by Isar streams or debounce.
 Future<void> disposeAppTree(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump(const Duration(milliseconds: 300));

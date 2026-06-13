@@ -150,10 +150,17 @@ Widget emptyState(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 64,
-            color: context.colors.onSurfaceVariant.withValues(alpha: 0.5),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: context.colors.primaryContainer.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 64,
+              color: context.colors.primary.withValues(alpha: 0.4),
+            ),
           ),
           SizedBox(height: DesignTokens.spacingL),
           Text(
