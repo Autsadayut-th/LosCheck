@@ -320,6 +320,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final selectedRecords = _selectedDateRecords;
     final dailySummaries = _dailySummaries;
     final weeklySummaries = _weeklySummaries;

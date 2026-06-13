@@ -360,6 +360,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final filteredRecords = _filteredRecords;
     final activePhoneFilter = _activePhoneFilter;
 
