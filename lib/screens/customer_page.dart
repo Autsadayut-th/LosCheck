@@ -380,24 +380,42 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                         SliverToBoxAdapter(
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.orange.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange.shade300),
+                              color: context.isDarkMode 
+                                ? Colors.amber.shade900.withValues(alpha: 0.2)
+                                : Colors.amber.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.amber.shade700,
+                                width: 1.5,
+                              ),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
-                                const SizedBox(width: 12),
+                                Icon(Icons.cloud_off_rounded, color: Colors.amber.shade800),
+                                const SizedBox(width: 16),
                                 Expanded(
-                                  child: Text(
-                                    'โหมดในหน่วยความจำ - ข้อมูลจะไม่ถูกบันทึกเมื่อปิดแอป',
-                                    style: TextStyle(
-                                      color: Colors.orange.shade900,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'โหมดออฟไลน์ (In-Memory)',
+                                        style: TextStyle(
+                                          color: context.isDarkMode ? Colors.amber.shade200 : Colors.amber.shade900,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'ข้อมูลจะไม่ถูกบันทึกลงเครื่องถาวร กรุณาอย่าปิดบราวเซอร์',
+                                        style: TextStyle(
+                                          color: context.isDarkMode ? Colors.amber.shade100 : Colors.amber.shade800,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
