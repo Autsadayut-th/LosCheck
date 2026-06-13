@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/customer_record.dart';
-import '../database/app_database.dart';
+import '../database/isar_database.dart';
 import '../services/csv_export_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../core/theme_extensions.dart';
@@ -18,7 +18,10 @@ class CustomerPage extends StatefulWidget {
   State<CustomerPage> createState() => _CustomerPageState();
 }
 
-class _CustomerPageState extends State<CustomerPage> {
+class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -53,16 +56,42 @@ class _CustomerPageState extends State<CustomerPage> {
     }).toList();
   }
 
+  StreamSubscription<List<CustomerRecord>>? _subscription;
+
   @override
   void initState() {
     super.initState();
     _phoneController.addListener(_onPhoneInputChanged);
     _phoneFilterController.addListener(_onPhoneFilterChanged);
-    _loadRecords();
+    _subscription = appDatabase.watchAllCustomers().listen((customers) {
+      if (!mounted) return;
+      // Sort newest first
+      final sortedCustomers = List<CustomerRecord>.from(customers)
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        
+      setState(() {
+        _records.clear();
+        _records.addAll(sortedCustomers);
+        _isLoading = false;
+      });
+    }, onError: (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    });
   }
 
   @override
   void dispose() {
+    _subscription?.cancel();
     _filterDebounce?.cancel();
     _phoneController.dispose();
     _nameController.dispose();
@@ -126,39 +155,6 @@ class _CustomerPageState extends State<CustomerPage> {
     });
   }
 
-  Future<void> _loadRecords() async {
-    try {
-      final customers = await appDatabase.getAllCustomers();
-      if (!mounted) return;
-      setState(() {
-        _records.clear();
-        _records.addAll(
-          customers.map(
-            (c) => CustomerRecord(
-              phone: c.phone,
-              name: c.name,
-              address: c.address,
-              createdAt: c.createdAt,
-            ),
-          ),
-        );
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    }
-  }
-
   Future<void> _saveCustomer() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -172,8 +168,12 @@ class _CustomerPageState extends State<CustomerPage> {
         createdAt: DateTime.now(),
       );
 
+      // Persist only the newly added/edited record. `insertCustomer` uses
+      // onConflict: DoUpdate, so it also doubles as an upsert.
+      await appDatabase.insertCustomer(record);
+      
+      if (!mounted) return;
       setState(() {
-        _records.insert(0, record);
         _phoneController.clear();
         _nameController.clear();
         _addressController.clear();
@@ -183,10 +183,6 @@ class _CustomerPageState extends State<CustomerPage> {
         _debouncedPhoneFilter = '';
       });
 
-      // Persist only the newly added/edited record. `insertCustomer` uses
-      // onConflict: DoUpdate, so it also doubles as an upsert.
-      await appDatabase.insertCustomer(record);
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('บันทึกข้อมูลลูกค้าสำเร็จ'),
@@ -215,9 +211,6 @@ class _CustomerPageState extends State<CustomerPage> {
     if (!confirmed) return;
 
     try {
-      setState(() {
-        _records.remove(record);
-      });
       await appDatabase.deleteCustomer(record.phone);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -229,10 +222,6 @@ class _CustomerPageState extends State<CustomerPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      // Restore state on error
-      setState(() {
-        _records.insert(0, record);
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการลบ: ${e.toString()}'),

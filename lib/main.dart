@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'database/isar_database.dart';
 import 'screens/customer_page.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/trip_fee_page.dart';
@@ -7,6 +8,13 @@ import 'screens/settings_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await appDatabase.initialize();
+  } catch (e) {
+    debugPrint('Database initialization failed: $e');
+    // Continue with app launch even if database fails
+    // UI will handle database errors gracefully
+  }
   runApp(const MyApp());
 }
 
@@ -115,6 +123,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
+  bool _isDatabaseReady = false;
 
   static const List<Widget> _pages = [
     DashboardPage(),
@@ -122,6 +131,34 @@ class _HomeShellState extends State<HomeShell> {
     CustomerPage(),
     SettingsPage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkDatabaseReady();
+  }
+
+  Future<void> _checkDatabaseReady() async {
+    try {
+      // Check if database is initialized
+      if (!appDatabase.isInitialized) {
+        debugPrint('Database not initialized, retrying...');
+        await appDatabase.initialize();
+      }
+      
+      // Test database connection by attempting a simple query
+      await appDatabase.getTotalCustomers();
+      setState(() {
+        _isDatabaseReady = true;
+      });
+    } catch (e) {
+      debugPrint('Database not ready: $e');
+      // Still allow UI to load, pages will handle database errors
+      setState(() {
+        _isDatabaseReady = true;
+      });
+    }
+  }
 
   void _cycleTheme() {
     final next = switch (widget.themeMode) {
@@ -142,6 +179,24 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_isDatabaseReady) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                'กำลังโหลด...',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -156,7 +211,7 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      body: _pages[_selectedIndex],
+      body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
