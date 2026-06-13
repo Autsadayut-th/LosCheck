@@ -156,7 +156,14 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   }
 
   Future<void> _saveCustomer() async {
+    debugPrint('=== Save Customer Started ===');
+    debugPrint('Phone: ${_phoneController.text.trim()}');
+    debugPrint('Name: ${_nameController.text.trim()}');
+    debugPrint('Address: ${_addressController.text.trim()}');
+    debugPrint('Form valid: ${_formKey.currentState?.validate()}');
+
     if (!_formKey.currentState!.validate()) {
+      debugPrint('Form validation failed');
       return;
     }
 
@@ -168,9 +175,13 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
         createdAt: DateTime.now(),
       );
 
+      debugPrint('Creating customer record: ${record.phone}, ${record.name}');
+      debugPrint('Database initialized: ${appDatabase.isInitialized}');
+
       // Persist only the newly added/edited record. `insertCustomer` uses
       // onConflict: DoUpdate, so it also doubles as an upsert.
       await appDatabase.insertCustomer(record);
+      debugPrint('Customer inserted successfully');
       
       if (!mounted) return;
       setState(() {
@@ -190,7 +201,11 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
           duration: Duration(seconds: 2),
         ),
       );
+      debugPrint('=== Save Customer Completed Successfully ===');
     } catch (e) {
+      debugPrint('=== Save Customer Failed ===');
+      debugPrint('Error: $e');
+      debugPrint('Error type: ${e.runtimeType}');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -360,6 +375,34 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                 ? const Center(child: CircularProgressIndicator())
                 : CustomScrollView(
                     slivers: [
+                      if (appDatabase.isUsingInMemory)
+                        SliverToBoxAdapter(
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.shade300),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'โหมดในหน่วยความจำ - ข้อมูลจะไม่ถูกบันทึกเมื่อปิดแอป',
+                                    style: TextStyle(
+                                      color: Colors.orange.shade900,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       SliverToBoxAdapter(
                         child: Row(
                           children: [

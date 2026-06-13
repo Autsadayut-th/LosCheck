@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:loscheck/database/app_database.dart';
+import 'package:loscheck/database/isar_database.dart';
 import 'package:loscheck/main.dart';
 
 import 'test_helpers.dart';
@@ -14,6 +14,8 @@ void main() {
     binding.window.physicalSizeTestValue = const Size(1200, 1600);
     // ignore: deprecated_member_use
     binding.window.devicePixelRatioTestValue = 1.0;
+    await configureTestPathProvider();
+    await appDatabase.initialize();
     await appDatabase.deleteAllCustomers();
     await appDatabase.deleteAllTrips();
   });
@@ -27,10 +29,10 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MyApp());
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     await tester.tap(find.text('ค่ารอบ'));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     expect(find.textContaining('ยอดรวม'), findsOneWidget);
     expect(find.text('0 ฿'), findsOneWidget);
@@ -42,12 +44,12 @@ void main() {
     expect(find.text('รวม 6 รอบ'), findsOneWidget);
 
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -350));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     expect(find.text('สรุปรายวัน'), findsOneWidget);
 
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     expect(find.textContaining('4 รอบ x 15 บาทต่อบิล'), findsOneWidget);
     expect(find.textContaining('2 รอบ x 5 บาทต่อบิล'), findsOneWidget);
@@ -58,7 +60,7 @@ void main() {
   ) async {
     // TODO: Implement Drift database loading test
     await tester.pumpWidget(const MyApp());
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
     await disposeAppTree(tester);
   });
 
@@ -66,10 +68,10 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MyApp());
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     await tester.tap(find.text('ลูกค้า'));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     expect(find.text('ข้อมูลลูกค้า'), findsOneWidget);
 
@@ -77,17 +79,17 @@ void main() {
       find.byKey(const Key('customerPhoneField')),
       '0812345678',
     );
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
     await tester.enterText(find.byKey(const Key('customerNameField')), 'สมชาย');
     await tester.enterText(
       find.byKey(const Key('customerAddressField')),
       '123 ถนนสุขุมวิท กรุงเทพ',
     );
     await tester.tap(find.byKey(const Key('saveCustomerButton')));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -700));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     expect(find.text('สมชาย'), findsOneWidget);
     expect(find.text('0812345678\n123 ถนนสุขุมวิท กรุงเทพ'), findsOneWidget);
@@ -98,7 +100,7 @@ void main() {
   ) async {
     // TODO: Implement Drift database loading test
     await tester.pumpWidget(const MyApp());
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
     await disposeAppTree(tester);
   });
 
@@ -107,7 +109,7 @@ void main() {
   ) async {
     // TODO: Implement Drift database loading test
     await tester.pumpWidget(const MyApp());
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
     await disposeAppTree(tester);
   });
 
@@ -115,17 +117,17 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const MyApp());
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     await tester.tap(find.text('ค่ารอบ'));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     await tester.tap(find.text('ระยะทาง 301-500 เมตร'));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     await tester.enterText(find.byType(TextField), '0');
     await tester.tap(find.text('ตกลง'));
-    await tester.pumpAndSettle();
+    await pumpApp(tester);
 
     expect(find.text('กรุณาใส่จำนวนรอบเป็นตัวเลขมากกว่า 0'), findsOneWidget);
   });
@@ -137,9 +139,9 @@ Future<void> _addTrip(
   String rounds,
 ) async {
   await tester.tap(find.text(optionLabel));
-  await tester.pumpAndSettle();
+  await pumpApp(tester);
 
   await tester.enterText(find.byType(TextField), rounds);
   await tester.tap(find.text('ตกลง'));
-  await tester.pumpAndSettle();
+  await pumpApp(tester);
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/trip_record.dart';
 import '../models/customer_record.dart';
-import '../database/app_database.dart';
+import '../database/isar_database.dart';
 import '../widgets/shimmer_loading.dart';
 import '../core/design_tokens.dart';
 import '../core/theme_extensions.dart';
@@ -18,10 +18,10 @@ class DashboardPage extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: StreamBuilder<List<TripRecordData>>(
+          child: StreamBuilder<List<TripRecord>>(
             stream: appDatabase.watchAllTrips(),
             builder: (context, tripsSnapshot) {
-              return StreamBuilder<List<CustomerRecordData>>(
+              return StreamBuilder<List<CustomerRecord>>(
                 stream: appDatabase.watchAllCustomers(),
                 builder: (context, customersSnapshot) {
                   if (tripsSnapshot.connectionState ==
@@ -37,29 +37,8 @@ class DashboardPage extends StatelessWidget {
                     );
                   }
 
-                  final tripRecords = (tripsSnapshot.data ?? const [])
-                      .map(
-                        (t) => TripRecord(
-                          id: t.id,
-                          distanceLabel: t.distanceLabel,
-                          rateBaht: t.rateBaht,
-                          rounds: t.rounds,
-                          createdAt: t.createdAt,
-                        ),
-                      )
-                      .toList();
-
-                  final customerRecords = (customersSnapshot.data ?? const [])
-                      .map(
-                        (c) => CustomerRecord(
-                          phone: c.phone,
-                          name: c.name,
-                          address: c.address,
-                          createdAt: c.createdAt,
-                          imageUrl: null,
-                        ),
-                      )
-                      .toList();
+                  final tripRecords = tripsSnapshot.data ?? const [];
+                  final customerRecords = customersSnapshot.data ?? const [];
 
                   return _DashboardContent(
                     tripRecords: tripRecords,

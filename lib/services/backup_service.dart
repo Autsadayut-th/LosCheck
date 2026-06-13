@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:intl/intl.dart';
 
-import '../database/app_database.dart';
+import '../database/isar_database.dart';
 import '../models/customer_record.dart';
 import '../models/trip_record.dart';
 

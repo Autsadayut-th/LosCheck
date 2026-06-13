@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:loscheck/database/app_database.dart';
+import 'package:loscheck/database/isar_database.dart';
 import 'package:loscheck/screens/trip_fee_page.dart';
 import 'package:loscheck/widgets/rounds_dialog.dart';
+
+import 'test_helpers.dart';
 
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +14,8 @@ void main() {
     binding.window.physicalSizeTestValue = const Size(1200, 1600);
     // ignore: deprecated_member_use
     binding.window.devicePixelRatioTestValue = 1.0;
+    await configureTestPathProvider();
+    await appDatabase.initialize();
     await appDatabase.deleteAllCustomers();
     await appDatabase.deleteAllTrips();
   });
@@ -33,7 +37,7 @@ void main() {
 
     testWidgets('displays summary panel after loading', (tester) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       expect(find.textContaining('ยอดรวม'), findsOneWidget);
       expect(find.text('0 ฿'), findsOneWidget);
       expect(find.text('รวม 0 รอบ'), findsOneWidget);
@@ -44,7 +48,7 @@ void main() {
       binding.window.physicalSizeTestValue = const Size(360, 720);
 
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.byType(CustomScrollView), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -52,7 +56,7 @@ void main() {
 
     testWidgets('displays distance option buttons', (tester) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       expect(find.text('เพิ่มค่ารอบ'), findsOneWidget);
       expect(find.text('ระยะทาง 0-300 เมตร'), findsOneWidget);
       expect(find.text('ระยะทาง 301-500 เมตร'), findsOneWidget);
@@ -64,10 +68,10 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.byType(RoundsDialog), findsOneWidget);
     });
@@ -76,14 +80,14 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(find.byType(TextField), '5');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.textContaining('5 รอบ x 5 บาทต่อบิล'), findsOneWidget);
       expect(find.text('25 บาท'), findsWidgets);
@@ -93,38 +97,44 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.text('ยกเลิก'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.byType(RoundsDialog), findsNothing);
     });
 
     testWidgets('edits trip record when edit button is tapped', (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TripFeePage(),
+          ),
+        ),
+      );
+      await pumpApp(tester);
 
       // Add a record first
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Tap edit button
       await tester.tap(find.byIcon(Icons.edit_outlined));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.byType(RoundsDialog), findsOneWidget);
 
       // Change rounds
       await tester.enterText(find.byType(TextField), '7');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.textContaining('7 รอบ x 5 บาทต่อบิล'), findsOneWidget);
       expect(find.text('35 บาท'), findsWidgets);
@@ -134,58 +144,58 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Add a record first
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Tap delete button
       await tester.tap(find.byIcon(Icons.delete_outline));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('ลบรายการนี้?'), findsOneWidget);
     });
 
     testWidgets('deletes trip record when confirmed', (tester) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Add a record first
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Delete the record
       await tester.tap(find.byIcon(Icons.delete_outline));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.text('ลบ'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.textContaining('3 รอบ x 5 บาทต่อบิล'), findsNothing);
     });
 
     testWidgets('does not delete when cancelled', (tester) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Add a record first
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Try to delete but cancel
       await tester.tap(find.byIcon(Icons.delete_outline));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.text('ยกเลิก'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.textContaining('3 รอบ x 5 บาทต่อบิล'), findsOneWidget);
     });
@@ -194,38 +204,38 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Add a record first
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Tap clear button
       await tester.tap(find.byIcon(Icons.delete_sweep_outlined));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('ล้างรายการของวันที่เลือกทั้งหมด?'), findsOneWidget);
     });
 
     testWidgets('clears today records when confirmed', (tester) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Add a record
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Clear today
       await tester.tap(find.byIcon(Icons.delete_sweep_outlined));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.text('ลบ'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.textContaining('3 รอบ x 5 บาทต่อบิล'), findsNothing);
     });
@@ -233,43 +243,49 @@ void main() {
     testWidgets('copies CSV to clipboard when export button is tapped', (
       tester,
     ) async {
-      await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TripFeePage(),
+          ),
+        ),
+      );
+      await pumpApp(tester);
 
       // Add a record
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Export
       await tester.tap(find.byIcon(Icons.file_download_outlined));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.byIcon(Icons.file_download_outlined), findsOneWidget);
     });
 
     testWidgets('displays daily summaries section', (tester) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('สรุปรายวัน'), findsOneWidget);
     });
 
     testWidgets('updates today total when record is added', (tester) async {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Check initial total
       expect(find.text('0 ฿'), findsOneWidget);
 
       // Add a record
       await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Check updated total
       expect(find.text('15 บาท'), findsWidgets);

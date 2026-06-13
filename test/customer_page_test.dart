@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:loscheck/database/app_database.dart';
+import 'package:loscheck/database/isar_database.dart';
 import 'package:loscheck/screens/customer_page.dart';
+
+import 'test_helpers.dart';
 
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +14,8 @@ void main() {
       binding.window.physicalSizeTestValue = const Size(1200, 1600);
       // ignore: deprecated_member_use
       binding.window.devicePixelRatioTestValue = 1.0;
+      await configureTestPathProvider();
+      await appDatabase.initialize();
       await appDatabase.deleteAllCustomers();
       await appDatabase.deleteAllTrips();
     });
@@ -36,7 +40,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       expect(find.text('ข้อมูลลูกค้า'), findsOneWidget);
       expect(find.text('เบอร์โทร'), findsOneWidget);
       expect(find.text('ชื่อลูกค้า'), findsOneWidget);
@@ -50,7 +54,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.byType(CustomScrollView), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -62,7 +66,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       final nameField = tester.widget<TextFormField>(
         find.byKey(const Key('customerNameField')),
@@ -81,13 +85,13 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       final nameField = tester.widget<TextFormField>(
         find.byKey(const Key('customerNameField')),
@@ -106,16 +110,16 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '123',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('เบอร์โทรต้องมีอย่างน้อย 9 ตัวเลข'), findsOneWidget);
     });
@@ -124,16 +128,16 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('กรุณาใส่ชื่อ'), findsOneWidget);
     });
@@ -142,22 +146,22 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
         'สมชาย',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('กรุณาใส่ที่อยู่'), findsOneWidget);
     });
@@ -166,13 +170,13 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -182,10 +186,10 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('สมชาย'), findsOneWidget);
       expect(find.text('0812345678\n123 ถนนสุขุมวิท'), findsOneWidget);
@@ -196,13 +200,13 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -212,10 +216,10 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       final phoneField = tester.widget<TextFormField>(
         find.byKey(const Key('customerPhoneField')),
@@ -227,13 +231,13 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -243,10 +247,10 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('สมชาย'), findsOneWidget);
       expect(find.textContaining('0812345678\n'), findsOneWidget);
@@ -258,13 +262,13 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -274,13 +278,13 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byIcon(Icons.delete_outline));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('ลบข้อมูลลูกค้า?'), findsOneWidget);
     });
@@ -289,13 +293,13 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -305,15 +309,15 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byIcon(Icons.delete_outline));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.text('ลบ'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('สมชาย'), findsNothing);
     });
@@ -322,13 +326,13 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -338,15 +342,15 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byIcon(Icons.delete_outline));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.text('ยกเลิก'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('สมชาย'), findsOneWidget);
     });
@@ -355,14 +359,14 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Add first customer
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -372,16 +376,16 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Add second customer
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0898765432',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -391,16 +395,16 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '456 ถนนสีลม',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Filter by phone
       await tester.enterText(
         find.byKey(const Key('customerPhoneFilterField')),
         '081',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('สมชาย'), findsOneWidget);
       expect(find.text('มานี'), findsNothing);
@@ -410,14 +414,14 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Add customer
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -427,20 +431,20 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Filter
       await tester.enterText(
         find.byKey(const Key('customerPhoneFilterField')),
         '081',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Clear filter
       await tester.tap(find.byIcon(Icons.clear));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('สมชาย'), findsOneWidget);
     });
@@ -451,13 +455,13 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -467,13 +471,13 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       // Tap on the customer tile
       await tester.tap(find.text('สมชาย'));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       final phoneField = tester.widget<TextFormField>(
         find.byKey(const Key('customerPhoneField')),
@@ -496,13 +500,13 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -512,12 +516,12 @@ void main() {
         find.byKey(const Key('customerAddressField')),
         '123 ถนนสุขุมวิท',
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       await tester.tap(find.byIcon(Icons.file_download_outlined));
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.byIcon(Icons.file_download_outlined), findsOneWidget);
     });
@@ -526,7 +530,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
-      await tester.pumpAndSettle();
+      await pumpApp(tester);
 
       expect(find.text('ยังไม่มีข้อมูลลูกค้า'), findsOneWidget);
     });

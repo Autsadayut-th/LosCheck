@@ -155,12 +155,18 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   }
 
   Future<void> _chooseDistance(DistanceOption option) async {
+    debugPrint('=== _chooseDistance Started ===');
+    debugPrint('Option: ${option.label}, Rate: ${option.rateBaht}');
+
     final rounds = await showDialog<int>(
       context: context,
       builder: (context) => const RoundsDialog(),
     );
 
+    debugPrint('Rounds entered: $rounds');
+
     if (rounds == null) {
+      debugPrint('Rounds dialog cancelled');
       return;
     }
 
@@ -181,9 +187,23 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
       createdAt: createdAt,
     );
 
+    debugPrint('Creating trip record: ${record.distanceLabel}, ${record.rounds} rounds, ${record.totalBaht} baht');
+    debugPrint('Selected date: $_selectedDate');
+    debugPrint('Created at: $createdAt');
+    debugPrint('Database initialized: ${appDatabase.isInitialized}');
+
     try {
       await appDatabase.insertTrip(record);
+      debugPrint('Trip inserted successfully');
+      
+      // Force refresh derived data
+      _refreshDerivedData();
+      debugPrint('Derived data refreshed');
+      debugPrint('Selected date records count: ${_selectedDateRecords.length}');
     } catch (e) {
+      debugPrint('=== Trip Insert Failed ===');
+      debugPrint('Error: $e');
+      debugPrint('Error type: ${e.runtimeType}');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -317,6 +337,34 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                 ? const Center(child: CircularProgressIndicator())
                 : CustomScrollView(
                     slivers: [
+                      if (appDatabase.isUsingInMemory)
+                        SliverToBoxAdapter(
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.shade300),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade800),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'โหมดในหน่วยความจำ - ข้อมูลจะไม่ถูกบันทึกเมื่อปิดแอป',
+                                    style: TextStyle(
+                                      color: Colors.orange.shade900,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       SliverToBoxAdapter(
                         child: _SummaryPanel(
                           totalBaht: _selectedDateTotal,

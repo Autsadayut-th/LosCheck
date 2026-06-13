@@ -1,7 +1,8 @@
+import 'dart:async';
+
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io' show Platform;
 import '../models/isar_customer.dart';
 import '../models/isar_trip.dart';
 import '../models/customer_record.dart';
@@ -13,6 +14,8 @@ class IsarDatabase {
   final List<CustomerRecord> _inMemoryCustomers = [];
   final List<TripRecord> _inMemoryTrips = [];
   bool _useInMemory = false;
+  final _customerStreamController = StreamController<List<CustomerRecord>>.broadcast();
+  final _tripStreamController = StreamController<List<TripRecord>>.broadcast();
 
   IsarDatabase._();
 
@@ -29,6 +32,8 @@ class IsarDatabase {
   }
 
   bool get isInitialized => _isar != null || _useInMemory;
+  
+  bool get isUsingInMemory => _useInMemory;
 
   Future<void> initialize() async {
     try {
@@ -58,17 +63,28 @@ class IsarDatabase {
 
   // Customer operations
   Future<void> insertCustomer(CustomerRecord record) async {
+    debugPrint('=== insertCustomer Called ===');
+    debugPrint('Using in-memory: $_useInMemory');
+    debugPrint('Record phone: ${record.phone}');
+    debugPrint('Record name: ${record.name}');
+    
     if (_useInMemory) {
+      debugPrint('Using in-memory storage');
       // Remove existing customer with same phone
       _inMemoryCustomers.removeWhere((c) => c.phone == record.phone);
       _inMemoryCustomers.add(record);
+      debugPrint('In-memory customers count: ${_inMemoryCustomers.length}');
+      // Notify stream listeners
+      _customerStreamController.add(List.from(_inMemoryCustomers));
       return;
     }
     
+    debugPrint('Using Isar database');
     final isarCustomer = IsarCustomer.fromCustomerRecord(record);
     await _isar!.writeTxn(() async {
       await _isar!.isarCustomers.put(isarCustomer);
     });
+    debugPrint('Isar insert completed');
   }
 
   Future<List<CustomerRecord>> getAllCustomers() async {
@@ -114,6 +130,8 @@ class IsarDatabase {
   Future<void> deleteCustomer(String phone) async {
     if (_useInMemory) {
       _inMemoryCustomers.removeWhere((c) => c.phone == phone);
+      // Notify stream listeners
+      _customerStreamController.add(List.from(_inMemoryCustomers));
       return;
     }
     
@@ -125,6 +143,8 @@ class IsarDatabase {
   Future<void> deleteAllCustomers() async {
     if (_useInMemory) {
       _inMemoryCustomers.clear();
+      // Notify stream listeners
+      _customerStreamController.add(List.from(_inMemoryCustomers));
       return;
     }
     
@@ -136,8 +156,7 @@ class IsarDatabase {
   Stream<List<CustomerRecord>> watchAllCustomers() async* {
     if (_useInMemory) {
       yield List.from(_inMemoryCustomers);
-      // For in-memory, we don't have real-time updates
-      // Return a stream that never updates
+      yield* _customerStreamController.stream;
       return;
     }
     
@@ -152,7 +171,13 @@ class IsarDatabase {
 
   // Trip operations
   Future<int> insertTrip(TripRecord record) async {
+    debugPrint('=== insertTrip Called ===');
+    debugPrint('Using in-memory: $_useInMemory');
+    debugPrint('Record: ${record.distanceLabel}, ${record.rounds} rounds, ${record.totalBaht} baht');
+    debugPrint('Created at: ${record.createdAt}');
+    
     if (_useInMemory) {
+      debugPrint('Using in-memory storage');
       final newRecord = TripRecord(
         id: DateTime.now().millisecondsSinceEpoch,
         distanceLabel: record.distanceLabel,
@@ -161,14 +186,19 @@ class IsarDatabase {
         createdAt: record.createdAt,
       );
       _inMemoryTrips.add(newRecord);
+      debugPrint('In-memory trips count: ${_inMemoryTrips.length}');
+      // Notify stream listeners
+      _tripStreamController.add(List.from(_inMemoryTrips));
       return newRecord.id!;
     }
     
+    debugPrint('Using Isar database');
     final isarTrip = IsarTrip.fromTripRecord(record);
     int id = 0;
     await _isar!.writeTxn(() async {
       id = await _isar!.isarTrips.put(isarTrip);
     });
+    debugPrint('Isar insert completed, ID: $id');
     return id;
   }
 
@@ -177,6 +207,8 @@ class IsarDatabase {
       final index = _inMemoryTrips.indexWhere((t) => t.id == record.id);
       if (index != -1) {
         _inMemoryTrips[index] = record;
+        // Notify stream listeners
+        _tripStreamController.add(List.from(_inMemoryTrips));
       }
       return;
     }
@@ -219,6 +251,8 @@ class IsarDatabase {
   Future<void> deleteTrip(int id) async {
     if (_useInMemory) {
       _inMemoryTrips.removeWhere((t) => t.id == id);
+      // Notify stream listeners
+      _tripStreamController.add(List.from(_inMemoryTrips));
       return;
     }
     
@@ -230,6 +264,8 @@ class IsarDatabase {
   Future<void> deleteAllTrips() async {
     if (_useInMemory) {
       _inMemoryTrips.clear();
+      // Notify stream listeners
+      _tripStreamController.add(List.from(_inMemoryTrips));
       return;
     }
     
@@ -245,6 +281,8 @@ class IsarDatabase {
       _inMemoryTrips.removeWhere((t) {
         return t.createdAt.isAfter(startOfDay) && t.createdAt.isBefore(startOfNextDay);
       });
+      // Notify stream listeners
+      _tripStreamController.add(List.from(_inMemoryTrips));
       return;
     }
     
@@ -263,8 +301,7 @@ class IsarDatabase {
   Stream<List<TripRecord>> watchAllTrips() async* {
     if (_useInMemory) {
       yield List.from(_inMemoryTrips);
-      // For in-memory, we don't have real-time updates
-      // Return a stream that never updates
+      yield* _tripStreamController.stream;
       return;
     }
     
@@ -434,6 +471,8 @@ class IsarDatabase {
         );
         _inMemoryTrips.add(newRecord);
       }
+      // Notify stream listeners
+      _tripStreamController.add(List.from(_inMemoryTrips));
       return;
     }
     
@@ -443,6 +482,11 @@ class IsarDatabase {
         await _isar!.isarTrips.put(isarTrip);
       }
     });
+  }
+
+  void dispose() {
+    _customerStreamController.close();
+    _tripStreamController.close();
   }
 }
 
