@@ -36,7 +36,7 @@ lib/
   main.dart                   # app entry point + tab shell
 ```
 
-Data is persisted locally via Drift (SQLite).
+Data is persisted locally via Isar (NoSQL).
 
 ## Getting started
 
@@ -45,17 +45,8 @@ flutter pub get
 flutter run -d chrome
 ```
 
-> **Web build (sql.js):** Drift needs `drift_flutter` to run in the browser.
-> The web build loads `sql.js` (SQLite compiled to WebAssembly) from a CDN
-> via the `<script>` tag in `web/index.html`. If you ever see the error
-> `Unsupported operation: Could not access the sql.js javascript library`,
-> make sure:
->
-> 1. `drift_flutter` is listed in `pubspec.yaml` and `flutter pub get`
->    has been run.
-> 2. The `sql-wasm.js` script tag is present in `web/index.html`.
-> 3. The CDN at `https://github.com/simolus3/sql.js-wasm/...` is reachable
->    from the browser that opens the app.
+> **Web build (Isar):** Isar works on the web using IndexedDB. No extra setup for sql.js is required.
+
 
 ## Testing
 
