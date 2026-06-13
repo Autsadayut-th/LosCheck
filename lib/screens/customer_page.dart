@@ -729,7 +729,7 @@ class _CustomerRecordTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCompact = MediaQuery.sizeOf(context).width < 380;
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
 
     return Card(
       elevation: 2,

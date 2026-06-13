@@ -649,7 +649,7 @@ class _SummaryPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCompact = MediaQuery.sizeOf(context).width < 380;
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
     final actionButtons = [
       FilledButton.icon(
         style: FilledButton.styleFrom(
@@ -814,7 +814,7 @@ class _RecordTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCompact = MediaQuery.sizeOf(context).width < 380;
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
     final totalText = '${record.totalBaht} บาท';
 
     final Color leadingColor = switch (record.distanceLabel) {
