@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'database/hive_database.dart';
+import 'providers/app_state_provider.dart';
 import 'screens/customer_page.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/trip_fee_page.dart';
@@ -45,64 +47,67 @@ class MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Los Check',
-      debugShowCheckedModeBanner: false,
-      themeMode: _themeMode,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
-          primary: Colors.teal.shade700,
-          secondary: Colors.amber.shade700,
-        ),
-        useMaterial3: true,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.teal.shade700,
-          foregroundColor: Colors.white,
-          elevation: 4,
-          shadowColor: Colors.black45,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
+    return ChangeNotifierProvider(
+      create: (_) => AppStateProvider(),
+      child: MaterialApp(
+        title: 'Los Check',
+        debugShowCheckedModeBanner: false,
+        themeMode: _themeMode,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.teal,
+            primary: Colors.teal.shade700,
+            secondary: Colors.amber.shade700,
+          ),
+          useMaterial3: true,
+          appBarTheme: AppBarTheme(
             backgroundColor: Colors.teal.shade700,
             foregroundColor: Colors.white,
-            elevation: 3,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+            elevation: 4,
+            shadowColor: Colors.black45,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal.shade700,
+              foregroundColor: Colors.white,
+              elevation: 3,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.tealAccent,
-          primary: Colors.tealAccent.shade200,
-          secondary: Colors.amberAccent,
-          brightness: Brightness.dark,
-          surface: const Color(0xFF121212),
-          surfaceContainerHighest: const Color(0xFF2C2C2C),
-          onSurface: Colors.white,
-        ),
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1F1F1F),
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.tealAccent.shade200,
-            foregroundColor: Colors.black87,
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.tealAccent,
+            primary: Colors.tealAccent.shade200,
+            secondary: Colors.amberAccent,
+            brightness: Brightness.dark,
+            surface: const Color(0xFF121212),
+            surfaceContainerHighest: const Color(0xFF2C2C2C),
+            onSurface: Colors.white,
+          ),
+          useMaterial3: true,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF1F1F1F),
+            foregroundColor: Colors.white,
             elevation: 0,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.tealAccent.shade200,
+              foregroundColor: Colors.black87,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),
+        home: HomeShell(themeMode: _themeMode, onThemeModeChanged: setThemeMode),
       ),
-      home: HomeShell(themeMode: _themeMode, onThemeModeChanged: setThemeMode),
     );
   }
 }

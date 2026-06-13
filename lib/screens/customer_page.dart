@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/customer_record.dart';
 import '../database/hive_database.dart';
+import '../providers/app_state_provider.dart';
 import '../services/csv_export_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../core/theme_extensions.dart';
@@ -28,14 +30,12 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _phoneFilterController = TextEditingController();
-  final List<CustomerRecord> _records = [];
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   Timer? _filterDebounce;
   String _phoneInput = '';
   String _debouncedPhoneInput = '';
   String _debouncedPhoneFilter = '';
-  bool _isLoading = true;
 
   bool get _canFillDetails => _phoneController.text.trim().isNotEmpty;
 
@@ -47,53 +47,26 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     return _debouncedPhoneInput.trim();
   }
 
-  List<CustomerRecord> get _filteredRecords {
+  List<CustomerRecord> _getFilteredRecords(List<CustomerRecord> customers) {
     final query = _normalizePhone(_activePhoneFilter);
     if (query.isEmpty) {
-      return _records;
+      return customers;
     }
 
-    return _records.where((record) {
+    return customers.where((record) {
       return _normalizePhone(record.phone).contains(query);
     }).toList();
   }
-
-  StreamSubscription<List<CustomerRecord>>? _subscription;
 
   @override
   void initState() {
     super.initState();
     _phoneController.addListener(_onPhoneInputChanged);
     _phoneFilterController.addListener(_onPhoneFilterChanged);
-    _subscription = appDatabase.watchAllCustomers().listen((customers) {
-      if (!mounted) return;
-      // Sort newest first
-      final sortedCustomers = List<CustomerRecord>.from(customers)
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        
-      setState(() {
-        _records.clear();
-        _records.addAll(sortedCustomers);
-        _isLoading = false;
-      });
-    }, onError: (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    });
   }
 
   @override
   void dispose() {
-    _subscription?.cancel();
     _filterDebounce?.cancel();
     _phoneController.dispose();
     _nameController.dispose();
@@ -249,10 +222,10 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     }
   }
 
-  Future<void> _exportCsv() async {
-    if (_records.isEmpty) return;
+  Future<void> _exportCsv(List<CustomerRecord> customers) async {
+    if (customers.isEmpty) return;
 
-    final csv = CsvExportService.exportCustomerRecords(_records);
+    final csv = CsvExportService.exportCustomerRecords(customers);
     await Clipboard.setData(ClipboardData(text: csv));
 
     if (!mounted) return;
@@ -343,9 +316,6 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile == null) return;
 
-    final index = _records.indexOf(record);
-    if (index == -1) return;
-
     final updated = CustomerRecord(
       phone: record.phone,
       name: record.name,
@@ -354,10 +324,6 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       imageUrl: pickedFile.path,
     );
 
-    setState(() {
-      _records[index] = updated;
-    });
-
     // Persist only the affected record.
     await appDatabase.insertCustomer(updated);
   }
@@ -365,7 +331,22 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final filteredRecords = _filteredRecords;
+    try {
+      final appState = Provider.of<AppStateProvider>(context);
+      return _buildContent(context, appState);
+    } catch (_) {
+      return ChangeNotifierProvider(
+        create: (_) => AppStateProvider(),
+        child: Consumer<AppStateProvider>(
+          builder: (context, appState, _) => _buildContent(context, appState),
+        ),
+      );
+    }
+  }
+
+  Widget _buildContent(BuildContext context, AppStateProvider appState) {
+    final customers = appState.customers;
+    final filteredRecords = _getFilteredRecords(customers);
     final activePhoneFilter = _activePhoneFilter;
 
     return SafeArea(
@@ -376,7 +357,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
             padding: EdgeInsets.all(
               MediaQuery.sizeOf(context).width < 380 ? 12 : 20,
             ),
-            child: _isLoading
+            child: appState.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : CustomScrollView(
                     slivers: [
@@ -428,7 +409,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                         ),
                       SliverToBoxAdapter(
                         child: Row(
-                          children: [
+                           children: [
                             Expanded(
                               child: Text(
                                 'ข้อมูลลูกค้า',
@@ -436,10 +417,10 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                             ),
-                            if (_records.isNotEmpty)
+                            if (customers.isNotEmpty)
                               IconButton(
                                 tooltip: 'Export CSV',
-                                onPressed: _exportCsv,
+                                onPressed: () => _exportCsv(customers),
                                 icon: const Icon(Icons.file_download_outlined),
                               ),
                           ],
@@ -512,7 +493,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                         ),
                       ),
                       const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                      if (_records.isEmpty)
+                      if (customers.isEmpty)
                         SliverToBoxAdapter(
                           child: emptyState(
                             context,

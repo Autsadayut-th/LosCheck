@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../models/distance_option.dart';
 import '../models/trip_record.dart';
 import '../database/hive_database.dart';
+import '../providers/app_state_provider.dart';
 import '../services/csv_export_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/rounds_dialog.dart';
@@ -29,22 +31,20 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     DistanceOption(label: 'ระยะทาง มากกว่า 3 กิโลเมตร', rateBaht: 25),
   ];
 
-  final List<TripRecord> _records = [];
   List<TripRecord> _selectedDateRecords = [];
   List<_DailyTripSummary> _dailySummaries = [];
   List<_PeriodSummary> _weeklySummaries = [];
   List<_PeriodSummary> _monthlySummaries = [];
-  bool _isLoading = true;
   DateTime _selectedDate = DateTime.now();
   int _selectedDateTotal = 0;
   int _selectedDateRounds = 0;
-  StreamSubscription<List<TripRecord>>? _subscription;
 
   List<_PeriodSummary> _buildPeriodSummaries(
+    List<TripRecord> trips,
     DateTime Function(DateTime) keyFn,
   ) {
     final grouped = <DateTime, List<TripRecord>>{};
-    for (final record in _records) {
+    for (final record in trips) {
       final key = keyFn(record.createdAt);
       grouped.putIfAbsent(key, () => []).add(record);
     }
@@ -60,10 +60,10 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     return summaries;
   }
 
-  List<_DailyTripSummary> _buildDailySummaries() {
+  List<_DailyTripSummary> _buildDailySummaries(List<TripRecord> trips) {
     final summariesByDate = <DateTime, List<TripRecord>>{};
 
-    for (final record in _records) {
+    for (final record in trips) {
       final date = DateTime(
         record.createdAt.year,
         record.createdAt.month,
@@ -92,12 +92,12 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     return summaries;
   }
 
-  void _refreshDerivedData() {
+  void _refreshDerivedData(List<TripRecord> trips) {
     final selectedDateRecords = <TripRecord>[];
     var selectedDateTotal = 0;
     var selectedDateRounds = 0;
 
-    for (final record in _records) {
+    for (final record in trips) {
       if (record.isSameDay(_selectedDate)) {
         selectedDateRecords.add(record);
         selectedDateTotal += record.totalBaht;
@@ -108,12 +108,12 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     _selectedDateRecords = selectedDateRecords;
     _selectedDateTotal = selectedDateTotal;
     _selectedDateRounds = selectedDateRounds;
-    _dailySummaries = _buildDailySummaries();
-    _weeklySummaries = _buildPeriodSummaries((date) {
+    _dailySummaries = _buildDailySummaries(trips);
+    _weeklySummaries = _buildPeriodSummaries(trips, (date) {
       final weekStart = date.subtract(Duration(days: date.weekday % 7));
       return DateTime(weekStart.year, weekStart.month, weekStart.day);
     });
-    _monthlySummaries = _buildPeriodSummaries(
+    _monthlySummaries = _buildPeriodSummaries(trips,
       (date) => DateTime(date.year, date.month),
     );
   }
@@ -121,36 +121,10 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   @override
   void initState() {
     super.initState();
-    _subscription = appDatabase.watchAllTrips().listen((records) {
-      if (!mounted) return;
-      // Sort records by createdAt descending to show newest first
-      final sortedRecords = List<TripRecord>.from(records)
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
-      setState(() {
-        _records.clear();
-        _records.addAll(sortedRecords);
-        _refreshDerivedData();
-        _isLoading = false;
-      });
-    }, onError: (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการโหลด: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
-    });
   }
 
   @override
   void dispose() {
-    _subscription?.cancel();
     super.dispose();
   }
 
@@ -195,11 +169,6 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     try {
       await appDatabase.insertTrip(record);
       debugPrint('Trip inserted successfully');
-      
-      // Force refresh derived data
-      _refreshDerivedData();
-      debugPrint('Derived data refreshed');
-      debugPrint('Selected date records count: ${_selectedDateRecords.length}');
     } catch (e) {
       debugPrint('=== Trip Insert Failed ===');
       debugPrint('Error: $e');
@@ -225,7 +194,6 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
-        _refreshDerivedData();
       });
     }
   }
@@ -284,10 +252,10 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     }
   }
 
-  Future<void> _exportCsv() async {
-    if (_records.isEmpty) return;
+  Future<void> _exportCsv(List<TripRecord> trips) async {
+    if (trips.isEmpty) return;
 
-    final csv = CsvExportService.exportTripRecords(_records);
+    final csv = CsvExportService.exportTripRecords(trips);
     await Clipboard.setData(ClipboardData(text: csv));
 
     if (!mounted) return;
@@ -321,6 +289,29 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    try {
+      final appState = Provider.of<AppStateProvider>(context);
+      return _buildContent(context, appState);
+    } catch (_) {
+      return ChangeNotifierProvider(
+        create: (_) => AppStateProvider(),
+        child: Consumer<AppStateProvider>(
+          builder: (context, appState, _) => _buildContent(context, appState),
+        ),
+      );
+    }
+  }
+
+  Widget _buildContent(BuildContext context, AppStateProvider appState) {
+    final trips = appState.trips;
+    
+    if (appState.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    _refreshDerivedData(trips);
     final selectedRecords = _selectedDateRecords;
     final dailySummaries = _dailySummaries;
     final weeklySummaries = _weeklySummaries;
@@ -334,9 +325,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
             padding: EdgeInsets.all(
               MediaQuery.sizeOf(context).width < 380 ? 12 : 20,
             ),
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : CustomScrollView(
+            child: CustomScrollView(
                     slivers: [
                       if (appDatabase.isUsingInMemory)
                         SliverToBoxAdapter(
@@ -389,9 +378,9 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                           totalBaht: _selectedDateTotal,
                           totalRounds: _selectedDateRounds,
                           canClear: selectedRecords.isNotEmpty,
-                          canExport: _records.isNotEmpty,
+                          canExport: trips.isNotEmpty,
                           onClear: _clearSelectedDate,
-                          onExport: _exportCsv,
+                          onExport: () => _exportCsv(trips),
                           dateLabel: _DailySummaryTile._formatDate(
                             _selectedDate,
                           ),

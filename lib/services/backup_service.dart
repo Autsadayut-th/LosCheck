@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
 import '../database/hive_database.dart';
@@ -7,6 +8,11 @@ import '../models/trip_record.dart';
 
 class BackupService {
   static const String _version = '1.0';
+
+  /// Decodes JSON on a separate isolate to avoid UI thread jank
+  static Map<String, dynamic> _decodeJson(String jsonStr) {
+    return jsonDecode(jsonStr) as Map<String, dynamic>;
+  }
 
   /// Export all data as JSON string (for backup/migration)
   static Future<String> exportToJson() async {
@@ -23,6 +29,7 @@ class BackupService {
               'name': c.name,
               'address': c.address,
               'createdAt': c.createdAt.toIso8601String(),
+              if (c.imageUrl != null) 'imageUrl': c.imageUrl!,
             },
           )
           .toList(),
@@ -38,7 +45,8 @@ class BackupService {
           .toList(),
     };
 
-    return jsonEncode(data);
+    // Serialize JSON on a background isolate
+    return compute(jsonEncode, data);
   }
 
   /// Generate a backup filename with timestamp
@@ -50,7 +58,9 @@ class BackupService {
 
   static Future<void> importFromJson(String jsonData) async {
     try {
-      final data = jsonDecode(jsonData) as Map<String, dynamic>;
+      // Decode JSON in background isolate
+      final decoded = await compute(_decodeJson, jsonData);
+      final data = decoded;
 
       // Validate version
       final version = data['version'] as String?;
@@ -60,34 +70,39 @@ class BackupService {
         );
       }
 
-      // ล้างข้อมูลเก่าทั้งหมดก่อนอิมพอร์ตตามข้อกำหนดในการเขียนทับ
+      // Clear all old data before replacing
       await clearAllData();
 
       final customersList = data['customers'] as List<dynamic>?;
       if (customersList != null) {
+        final List<CustomerRecord> customers = [];
         for (final customerData in customersList) {
-          final customer = CustomerRecord(
+          customers.add(CustomerRecord(
             phone: customerData['phone'] as String,
             name: customerData['name'] as String,
             address: customerData['address'] as String,
             createdAt: DateTime.parse(customerData['createdAt'] as String),
-          );
-          await appDatabase.insertCustomer(customer);
+            imageUrl: customerData['imageUrl'] as String?,
+          ));
         }
+        // Write all customers to Hive in a single bulk transaction
+        await appDatabase.batchInsertCustomers(customers);
       }
 
       // Import trips
       final tripsList = data['trips'] as List<dynamic>?;
       if (tripsList != null) {
+        final List<TripRecord> trips = [];
         for (final tripData in tripsList) {
-          final trip = TripRecord(
+          trips.add(TripRecord(
             distanceLabel: tripData['distanceLabel'] as String,
             rateBaht: tripData['rateBaht'] as int,
             rounds: tripData['rounds'] as int,
             createdAt: DateTime.parse(tripData['createdAt'] as String),
-          );
-          await appDatabase.insertTrip(trip);
+          ));
         }
+        // Write all trips to Hive in a single bulk transaction
+        await appDatabase.batchInsertTrips(trips);
       }
     } catch (e) {
       throw Exception('Failed to import backup: ${e.toString()}');
@@ -103,34 +118,39 @@ class BackupService {
   /// Merge backup data (append instead of replace)
   static Future<void> mergeFromJson(String jsonData) async {
     try {
-      final data = jsonDecode(jsonData) as Map<String, dynamic>;
+      // Decode JSON in background isolate
+      final decoded = await compute(_decodeJson, jsonData);
+      final data = decoded;
 
       // Merge customers
       final customersList = data['customers'] as List<dynamic>?;
       if (customersList != null) {
+        final List<CustomerRecord> customers = [];
         for (final customerData in customersList) {
-          final customer = CustomerRecord(
+          customers.add(CustomerRecord(
             phone: customerData['phone'] as String,
             name: customerData['name'] as String,
             address: customerData['address'] as String,
             createdAt: DateTime.parse(customerData['createdAt'] as String),
-          );
-          await appDatabase.insertCustomer(customer);
+            imageUrl: customerData['imageUrl'] as String?,
+          ));
         }
+        await appDatabase.batchInsertCustomers(customers);
       }
 
       // Merge trips
       final tripsList = data['trips'] as List<dynamic>?;
       if (tripsList != null) {
+        final List<TripRecord> trips = [];
         for (final tripData in tripsList) {
-          final trip = TripRecord(
+          trips.add(TripRecord(
             distanceLabel: tripData['distanceLabel'] as String,
             rateBaht: tripData['rateBaht'] as int,
             rounds: tripData['rounds'] as int,
             createdAt: DateTime.parse(tripData['createdAt'] as String),
-          );
-          await appDatabase.insertTrip(trip);
+          ));
         }
+        await appDatabase.batchInsertTrips(trips);
       }
     } catch (e) {
       throw Exception('Failed to merge backup: ${e.toString()}');

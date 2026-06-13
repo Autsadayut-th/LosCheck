@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/trip_record.dart';
 import '../models/customer_record.dart';
 import '../database/hive_database.dart';
+import '../providers/app_state_provider.dart';
 import '../widgets/shimmer_loading.dart';
 import '../core/design_tokens.dart';
 import '../core/theme_extensions.dart';
@@ -13,39 +15,37 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use StreamBuilder so the dashboard stays in sync whenever trips or
-    // customers change in the DB. No manual init/refresh needed.
+    try {
+      final appState = Provider.of<AppStateProvider>(context);
+      return _buildContent(context, appState);
+    } catch (_) {
+      return ChangeNotifierProvider(
+        create: (_) => AppStateProvider(),
+        child: Consumer<AppStateProvider>(
+          builder: (context, appState, _) => _buildContent(context, appState),
+        ),
+      );
+    }
+  }
+
+  Widget _buildContent(BuildContext context, AppStateProvider appState) {
     return SafeArea(
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: StreamBuilder<List<TripRecord>>(
-            stream: appDatabase.watchAllTrips(),
-            builder: (context, tripsSnapshot) {
-              return StreamBuilder<List<CustomerRecord>>(
-                stream: appDatabase.watchAllCustomers(),
-                builder: (context, customersSnapshot) {
-                  if (tripsSnapshot.connectionState ==
-                          ConnectionState.waiting ||
-                      customersSnapshot.connectionState ==
-                          ConnectionState.waiting) {
-                    return _buildLoading();
-                  }
+          child: Builder(
+            builder: (context) {
+              if (appState.isLoading) {
+                return _buildLoading();
+              }
 
-                  if (tripsSnapshot.hasError || customersSnapshot.hasError) {
-                    return _buildError(
-                      tripsSnapshot.error ?? customersSnapshot.error,
-                    );
-                  }
+              if (appState.error != null) {
+                return _buildError(appState.error);
+              }
 
-                  final tripRecords = tripsSnapshot.data ?? const [];
-                  final customerRecords = customersSnapshot.data ?? const [];
-
-                  return _DashboardContent(
-                    tripRecords: tripRecords,
-                    customerRecords: customerRecords,
-                  );
-                },
+              return _DashboardContent(
+                tripRecords: appState.trips,
+                customerRecords: appState.customers,
               );
             },
           ),
