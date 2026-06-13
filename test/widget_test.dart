@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:loscheck/database/isar_database.dart';
+import 'package:loscheck/database/hive_database.dart';
 import 'package:loscheck/main.dart';
 
 import 'test_helpers.dart';

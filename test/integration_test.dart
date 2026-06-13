@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:loscheck/database/isar_database.dart';
+import 'package:loscheck/database/hive_database.dart';
 import 'package:loscheck/main.dart';
 
 import 'test_helpers.dart';
@@ -66,6 +66,7 @@ void main() {
       // Navigate back to TripFeePage
       await tester.tap(find.text('ค่ารอบ'));
       await pumpApp(tester);
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('เพิ่มค่ารอบ'), findsOneWidget);
       expect(find.text('ข้อมูลลูกค้า'), findsNothing);

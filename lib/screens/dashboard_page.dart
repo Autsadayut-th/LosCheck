@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/trip_record.dart';
 import '../models/customer_record.dart';
-import '../database/isar_database.dart';
+import '../database/hive_database.dart';
 import '../widgets/shimmer_loading.dart';
 import '../core/design_tokens.dart';
 import '../core/theme_extensions.dart';
@@ -124,97 +125,119 @@ class _DashboardContent extends StatelessWidget {
       padding: DesignTokens.paddingM,
       child: ListView(
         children: [
-          Text(
-            'ภาพรวม',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          FadeInSlide(
+            delay: Duration.zero,
+            child: Text(
+              'ภาพรวม',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
           ),
-          SizedBox(height: DesignTokens.spacingL),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  title: 'รายได้รวม',
-                  value: '$_totalRevenue',
-                  unit: 'บาท',
-                  icon: Icons.attach_money,
-                  gradient: LinearGradient(
-                    colors: [Colors.amber.shade700, Colors.amber.shade400],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+          const SizedBox(height: DesignTokens.spacingL),
+          FadeInSlide(
+            delay: const Duration(milliseconds: 100),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    title: 'รายได้รวม',
+                    value: '$_totalRevenue',
+                    unit: 'บาท',
+                    icon: Icons.attach_money,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF2994A), Color(0xFFF2C94C)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    textColor: Colors.white,
                   ),
-                  textColor: Colors.white,
                 ),
-              ),
-              SizedBox(width: DesignTokens.spacingM),
-              Expanded(
-                child: _StatCard(
-                  title: 'รอบรวม',
-                  value: '$_totalRounds',
-                  unit: 'รอบ',
-                  icon: Icons.local_shipping,
-                  gradient: LinearGradient(
-                    colors: [Colors.orange.shade800, Colors.orange.shade400],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                const SizedBox(width: DesignTokens.spacingM),
+                Expanded(
+                  child: _StatCard(
+                    title: 'รอบรวม',
+                    value: '$_totalRounds',
+                    unit: 'รอบ',
+                    icon: Icons.local_shipping,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF857A6), Color(0xFFFF5858)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    textColor: Colors.white,
                   ),
-                  textColor: Colors.white,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          SizedBox(height: DesignTokens.spacingM),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  title: 'รายการทั้งหมด',
-                  value: '$_totalTripRecords',
-                  unit: 'รายการ',
-                  icon: Icons.receipt_long,
-                  gradient: LinearGradient(
-                    colors: [Colors.teal.shade800, Colors.teal.shade400],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+          const SizedBox(height: DesignTokens.spacingM),
+          FadeInSlide(
+            delay: const Duration(milliseconds: 200),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    title: 'รายการทั้งหมด',
+                    value: '$_totalTripRecords',
+                    unit: 'รายการ',
+                    icon: Icons.receipt_long,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    textColor: Colors.white,
                   ),
-                  textColor: Colors.white,
                 ),
-              ),
-              SizedBox(width: DesignTokens.spacingM),
-              Expanded(
-                child: _StatCard(
-                  title: 'ลูกค้าทั้งหมด',
-                  value: '$_totalCustomerRecords',
-                  unit: 'คน',
-                  icon: Icons.people,
-                  gradient: LinearGradient(
-                    colors: [Colors.indigo.shade800, Colors.indigo.shade400],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                const SizedBox(width: DesignTokens.spacingM),
+                Expanded(
+                  child: _StatCard(
+                    title: 'ลูกค้าทั้งหมด',
+                    value: '$_totalCustomerRecords',
+                    unit: 'คน',
+                    icon: Icons.people,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF7F00FF), Color(0xFFE100FF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    textColor: Colors.white,
                   ),
-                  textColor: Colors.white,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          SizedBox(height: DesignTokens.spacingXl),
-          Text(
-            'สถิติตามระยะทาง',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          const SizedBox(height: DesignTokens.spacingXl),
+          FadeInSlide(
+            delay: const Duration(milliseconds: 300),
+            child: Text(
+              'สถิติตามระยะทาง',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
           ),
-          SizedBox(height: DesignTokens.spacingM),
+          const SizedBox(height: DesignTokens.spacingM),
           if (_distanceStats.isEmpty)
-            emptyState(
-              context,
-              icon: Icons.bar_chart_outlined,
-              title: 'ยังไม่มีสถิติ',
-              message: 'เพิ่มรายการเดินทางเพื่อดูสถิติ',
+            FadeInSlide(
+              delay: const Duration(milliseconds: 400),
+              child: emptyState(
+                context,
+                icon: Icons.bar_chart_outlined,
+                title: 'ยังไม่มีสถิติ',
+                message: 'เพิ่มรายการเดินทางเพื่อดูสถิติ',
+              ),
             )
           else
-            ..._distanceStats.map((stat) => _DistanceStatCard(stat: stat)),
+            ..._distanceStats.asMap().entries.map((entry) {
+              final index = entry.key;
+              final stat = entry.value;
+              return FadeInSlide(
+                delay: Duration(milliseconds: 400 + index * 100),
+                child: _DistanceStatCard(stat: stat),
+              );
+            }),
         ],
       ),
     );
@@ -408,4 +431,62 @@ class _DistanceStats {
   final String label;
   int count;
   int total;
+}
+
+class FadeInSlide extends StatefulWidget {
+  const FadeInSlide({
+    super.key,
+    required this.child,
+    this.duration = const Duration(milliseconds: 500),
+    this.delay = Duration.zero,
+  });
+
+  final Widget child;
+  final Duration duration;
+  final Duration delay;
+
+  @override
+  State<FadeInSlide> createState() => _FadeInSlideState();
+}
+
+class _FadeInSlideState extends State<FadeInSlide> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(duration: widget.duration, vsync: this);
+    
+    if (widget.delay == Duration.zero) {
+      _controller.forward();
+    } else {
+      _timer = Timer(widget.delay, () {
+        if (mounted) _controller.forward();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _controller.drive(Tween<double>(begin: 0.0, end: 1.0)),
+      child: SlideTransition(
+        position: _controller.drive(
+          Tween<Offset>(
+            begin: const Offset(0, 0.1),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        ),
+        child: widget.child,
+      ),
+    );
+  }
 }

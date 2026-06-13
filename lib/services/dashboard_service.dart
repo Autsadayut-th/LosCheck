@@ -1,4 +1,4 @@
-import 'package:loscheck/database/isar_database.dart';
+import 'package:loscheck/database/hive_database.dart';
 
 class DashboardService {
   static final DashboardService _instance = DashboardService._internal();
@@ -9,7 +9,7 @@ class DashboardService {
 
   DashboardService._internal();
 
-  late IsarDatabase _database;
+  late HiveDatabase _database;
   DashboardSummary? _cachedSummary;
   List<DistanceStat>? _cachedDistanceStats;
   DateTime? _lastSummaryUpdate;
@@ -17,7 +17,7 @@ class DashboardService {
 
   static const Duration _cacheDuration = Duration(seconds: 30);
 
-  void initialize(IsarDatabase database) {
+  void initialize(HiveDatabase database) {
     _database = database;
   }
 

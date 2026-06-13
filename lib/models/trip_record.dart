@@ -46,8 +46,9 @@ class TripRecord {
     };
   }
 
-  static TripRecord fromJson(Map<String, dynamic> json) {
+  static TripRecord fromJson(Map<String, dynamic> json, {int? id}) {
     return TripRecord(
+      id: id,
       distanceLabel: json['distanceLabel'] as String,
       rateBaht: json['rateBaht'] as int,
       rounds: json['rounds'] as int,

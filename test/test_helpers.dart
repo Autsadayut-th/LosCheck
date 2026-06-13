@@ -3,12 +3,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loscheck/database/hive_database.dart';
 
 const MethodChannel _pathProviderChannel = MethodChannel(
   'plugins.flutter.io/path_provider',
 );
 
 Future<void> configureTestPathProvider() async {
+  HiveDatabase.isTesting = true;
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(_pathProviderChannel, (call) async {
         final directory = Directory.systemTemp.createTempSync('loscheck_test_');

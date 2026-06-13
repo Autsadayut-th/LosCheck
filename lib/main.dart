@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'database/isar_database.dart';
+import 'database/hive_database.dart';
 import 'screens/customer_page.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/trip_fee_page.dart';

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:intl/intl.dart';
 
-import '../database/isar_database.dart';
+import '../database/hive_database.dart';
 import '../models/customer_record.dart';
 import '../models/trip_record.dart';
 
@@ -48,7 +48,6 @@ class BackupService {
     return 'loscheck_backup_${formatter.format(now)}.json';
   }
 
-  /// Import data from JSON string
   static Future<void> importFromJson(String jsonData) async {
     try {
       final data = jsonDecode(jsonData) as Map<String, dynamic>;
@@ -61,7 +60,9 @@ class BackupService {
         );
       }
 
-      // Import customers
+      // ล้างข้อมูลเก่าทั้งหมดก่อนอิมพอร์ตตามข้อกำหนดในการเขียนทับ
+      await clearAllData();
+
       final customersList = data['customers'] as List<dynamic>?;
       if (customersList != null) {
         for (final customerData in customersList) {

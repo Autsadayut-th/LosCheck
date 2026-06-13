@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../models/distance_option.dart';
 import '../models/trip_record.dart';
-import '../database/isar_database.dart';
+import '../database/hive_database.dart';
 import '../services/csv_export_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/rounds_dialog.dart';
@@ -338,6 +338,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                 ? const Center(child: CircularProgressIndicator())
                 : CustomScrollView(
                     slivers: [
+                      if (appDatabase.isUsingInMemory)
                         SliverToBoxAdapter(
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 16),
@@ -827,63 +828,84 @@ class _RecordTile extends StatelessWidget {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
     final totalText = '${record.totalBaht} บาท';
 
+    final Color leadingColor = switch (record.distanceLabel) {
+      'ระยะทาง 0-300 เมตร' => Colors.blue.shade400,
+      'ระยะทาง 301-500 เมตร' => Colors.green.shade400,
+      'ระยะทาง 501 เมตร - 3 กิโลเมตร' => Colors.orange.shade400,
+      'ระยะทาง มากกว่า 3 กิโลเมตร' => Colors.red.shade400,
+      _ => Colors.grey.shade400,
+    };
+
     return Card(
-      child: ListTile(
-        title: Text(record.distanceLabel),
-        subtitle: Text(
-          isCompact
-              ? '${record.rounds} รอบ x ${record.rateBaht} บาทต่อบิล • ${_formatTime(record.createdAt)}\n$totalText'
-              : '${record.rounds} รอบ x ${record.rateBaht} บาทต่อบิล • ${_formatTime(record.createdAt)}',
+      elevation: 2,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(
+              color: leadingColor,
+              width: 6,
+            ),
+          ),
         ),
-        trailing: isCompact
-            ? PopupMenuButton<_RecordAction>(
-                tooltip: 'เมนูรายการ',
-                onSelected: (action) {
-                  switch (action) {
-                    case _RecordAction.edit:
-                      onEdit();
-                    case _RecordAction.delete:
-                      onDelete();
-                  }
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: _RecordAction.edit,
-                    child: ListTile(
-                      leading: Icon(Icons.edit_outlined),
-                      title: Text('แก้ไข'),
+        child: ListTile(
+          title: Text(record.distanceLabel),
+          subtitle: Text(
+            isCompact
+                ? '${record.rounds} รอบ x ${record.rateBaht} บาทต่อบิล • ${_formatTime(record.createdAt)}\n$totalText'
+                : '${record.rounds} รอบ x ${record.rateBaht} บาทต่อบิล • ${_formatTime(record.createdAt)}',
+          ),
+          trailing: isCompact
+              ? PopupMenuButton<_RecordAction>(
+                  tooltip: 'เมนูรายการ',
+                  onSelected: (action) {
+                    switch (action) {
+                      case _RecordAction.edit:
+                        onEdit();
+                      case _RecordAction.delete:
+                        onDelete();
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: _RecordAction.edit,
+                      child: ListTile(
+                        leading: Icon(Icons.edit_outlined),
+                        title: Text('แก้ไข'),
+                      ),
                     ),
-                  ),
-                  PopupMenuItem(
-                    value: _RecordAction.delete,
-                    child: ListTile(
-                      leading: Icon(Icons.delete_outline),
-                      title: Text('ลบ'),
+                    PopupMenuItem(
+                      value: _RecordAction.delete,
+                      child: ListTile(
+                        leading: Icon(Icons.delete_outline),
+                        title: Text('ลบ'),
+                      ),
                     ),
-                  ),
-                ],
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    totalText,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                  ],
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      totalText,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'แก้ไขจำนวนรอบ',
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit_outlined),
-                  ),
-                  IconButton(
-                    tooltip: 'ลบรายการ',
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ],
-              ),
+                    IconButton(
+                      tooltip: 'แก้ไขจำนวนรอบ',
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit_outlined),
+                    ),
+                    IconButton(
+                      tooltip: 'ลบรายการ',
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }

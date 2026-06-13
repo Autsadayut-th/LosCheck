@@ -292,10 +292,10 @@ class _BackupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = dangerous
-        ? (isDarkMode ? Colors.red.shade900 : Colors.red.shade50)
+        ? Theme.of(context).colorScheme.errorContainer.withValues(alpha: isDarkMode ? 0.2 : 0.15)
         : null;
     final foregroundColor = dangerous
-        ? Colors.red
+        ? Theme.of(context).colorScheme.error
         : Theme.of(context).colorScheme.primary;
 
     return Card(
@@ -304,7 +304,9 @@ class _BackupCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: dangerous ? Colors.red.shade300 : Colors.grey.shade300,
+          color: dangerous
+              ? Theme.of(context).colorScheme.error.withValues(alpha: 0.4)
+              : Colors.grey.shade300,
           width: 1,
         ),
       ),
