@@ -22,10 +22,11 @@ class CustomerPage extends StatefulWidget {
   State<CustomerPage> createState() => _CustomerPageState();
 }
 
-class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClientMixin {
+class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   @override
   bool get wantKeepAlive => true;
 
+  late final TabController _tabController;
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -61,12 +62,14 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _phoneController.addListener(_onPhoneInputChanged);
     _phoneFilterController.addListener(_onPhoneFilterChanged);
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _filterDebounce?.cancel();
     _phoneController.dispose();
     _nameController.dispose();
@@ -244,6 +247,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       _debouncedPhoneInput = record.phone;
       _debouncedPhoneFilter = '';
     });
+    _tabController.animateTo(1);
   }
 
   Future<void> _callCustomer(CustomerRecord record) async {
@@ -349,188 +353,247 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     final filteredRecords = _getFilteredRecords(customers);
     final activePhoneFilter = _activePhoneFilter;
 
+    if (appState.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: Padding(
-            padding: EdgeInsets.all(
-              MediaQuery.sizeOf(context).width < 380 ? 12 : 20,
+      child: Column(
+        children: [
+          Material(
+            color: Theme.of(context).colorScheme.surface,
+            elevation: 1,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: Theme.of(context).colorScheme.primary,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: Theme.of(context).colorScheme.primary,
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.search),
+                  text: 'รายชื่อลูกค้า',
+                ),
+                Tab(
+                  icon: Icon(Icons.person_add),
+                  text: 'เพิ่ม/แก้ไขลูกค้า',
+                ),
+              ],
             ),
-            child: appState.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : CustomScrollView(
-                    slivers: [
-                      if (appDatabase.isUsingInMemory)
-                        SliverToBoxAdapter(
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: context.isDarkMode 
-                                ? Colors.amber.shade900.withValues(alpha: 0.2)
-                                : Colors.amber.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.amber.shade700,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.cloud_off_rounded, color: Colors.amber.shade800),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'โหมดออฟไลน์ (In-Memory)',
-                                        style: TextStyle(
-                                          color: context.isDarkMode ? Colors.amber.shade200 : Colors.amber.shade900,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'ข้อมูลจะไม่ถูกบันทึกลงเครื่องถาวร กรุณาอย่าปิดบราวเซอร์',
-                                        style: TextStyle(
-                                          color: context.isDarkMode ? Colors.amber.shade100 : Colors.amber.shade800,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSearchTab(context, customers, filteredRecords, activePhoneFilter),
+                _buildFormTab(context, appState),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchTab(
+    BuildContext context,
+    List<CustomerRecord> customers,
+    List<CustomerRecord> filteredRecords,
+    String activePhoneFilter,
+  ) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: Padding(
+          padding: EdgeInsets.all(
+            MediaQuery.sizeOf(context).width < 380 ? 12 : 20,
+          ),
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'ข้อมูลลูกค้า',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    if (customers.isNotEmpty)
+                      IconButton(
+                        tooltip: 'Export CSV',
+                        onPressed: () => _exportCsv(customers),
+                        icon: const Icon(Icons.file_download_outlined),
+                      ),
+                  ],
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              SliverToBoxAdapter(
+                child: Text(
+                  'ค้นหาเบอร์โทร',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 10)),
+              SliverToBoxAdapter(
+                child: TextField(
+                  key: const Key('customerPhoneFilterField'),
+                  controller: _phoneFilterController,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[0-9+\-\s]'),
+                    ),
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'กรองจากเบอร์โทร',
+                    hintText: 'พิมพ์บางส่วนของเบอร์',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _phoneFilterController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'ล้างคำค้นหา',
+                            onPressed: _clearPhoneFilter,
+                            icon: const Icon(Icons.clear),
                           ),
-                        ),
-                      SliverToBoxAdapter(
-                        child: Row(
-                           children: [
-                            Expanded(
-                              child: Text(
-                                'ข้อมูลลูกค้า',
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                            if (customers.isNotEmpty)
-                              IconButton(
-                                tooltip: 'Export CSV',
-                                onPressed: () => _exportCsv(customers),
-                                icon: const Icon(Icons.file_download_outlined),
-                              ),
-                          ],
-                        ),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              SliverToBoxAdapter(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        activePhoneFilter.isEmpty
+                            ? 'ประวัติลูกค้า'
+                            : 'ประวัติลูกค้า (${filteredRecords.length} รายการ)',
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                      SliverToBoxAdapter(
-                        child: _CustomerForm(
-                          formKey: _formKey,
-                          phoneController: _phoneController,
-                          nameController: _nameController,
-                          addressController: _addressController,
-                          canFillDetails: _canFillDetails,
-                          onSave: _saveCustomer,
-                        ),
+                    ),
+                    if (activePhoneFilter.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: _clearActiveFilters,
+                        icon: const Icon(Icons.filter_alt_off_outlined),
+                        label: const Text('ล้างตัวกรอง'),
                       ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                      SliverToBoxAdapter(
-                        child: Text(
-                          'ค้นหาเบอร์โทร',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                      SliverToBoxAdapter(
-                        child: TextField(
-                          key: const Key('customerPhoneFilterField'),
-                          controller: _phoneFilterController,
-                          keyboardType: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'[0-9+\-\s]'),
-                            ),
-                          ],
-                          decoration: InputDecoration(
-                            labelText: 'กรองจากเบอร์โทร',
-                            hintText: 'พิมพ์บางส่วนของเบอร์',
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: _phoneFilterController.text.isEmpty
-                                ? null
-                                : IconButton(
-                                    tooltip: 'ล้างคำค้นหา',
-                                    onPressed: _clearPhoneFilter,
-                                    icon: const Icon(Icons.clear),
-                                  ),
-                          ),
-                        ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                      SliverToBoxAdapter(
-                        child: Row(
+                  ],
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 10)),
+              if (customers.isEmpty)
+                SliverToBoxAdapter(
+                  child: emptyState(
+                    context,
+                    icon: Icons.people_outline,
+                    title: 'ยังไม่มีข้อมูลลูกค้า',
+                    message: 'เพิ่มลูกค้าใหม่เพื่อเริ่มต้นใช้งาน',
+                  ),
+                )
+              else if (filteredRecords.isEmpty)
+                SliverToBoxAdapter(
+                  child: emptyState(
+                    context,
+                    icon: Icons.search_outlined,
+                    title: 'ไม่พบเบอร์โทรที่ค้นหา',
+                    message: 'ลองค้นหาด้วยเบอร์โทรอื่น',
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((
+                    context,
+                    index,
+                  ) {
+                    final record = filteredRecords[index];
+                    return _CustomerRecordTile(
+                      record: record,
+                      onUse: () => _useRecord(record),
+                      onDelete: () => _deleteRecord(record),
+                      onCall: () => _callCustomer(record),
+                      onMap: () => _openMap(record),
+                      onImage: () => _pickOrViewImage(record),
+                    );
+                  }, childCount: filteredRecords.length),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormTab(BuildContext context, AppStateProvider appState) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(
+            MediaQuery.sizeOf(context).width < 380 ? 12 : 20,
+          ),
+          child: Column(
+            children: [
+              if (appDatabase.isUsingInMemory)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: context.isDarkMode 
+                      ? Colors.amber.shade900.withValues(alpha: 0.2)
+                      : Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.amber.shade700,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_off_rounded, color: Colors.amber.shade800),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Text(
-                                activePhoneFilter.isEmpty
-                                    ? 'ประวัติลูกค้า'
-                                    : 'ประวัติลูกค้า (${filteredRecords.length} รายการ)',
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.w700),
+                            Text(
+                              'โหมดออฟไลน์ (In-Memory)',
+                              style: TextStyle(
+                                color: context.isDarkMode ? Colors.amber.shade200 : Colors.amber.shade900,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (activePhoneFilter.isNotEmpty)
-                              TextButton.icon(
-                                onPressed: _clearActiveFilters,
-                                icon: const Icon(Icons.filter_alt_off_outlined),
-                                label: const Text('ล้างตัวกรอง'),
+                            const SizedBox(height: 2),
+                            Text(
+                              'ข้อมูลจะไม่ถูกบันทึกลงเครื่องถาวร กรุณาอย่าปิดบราวเซอร์',
+                              style: TextStyle(
+                                color: context.isDarkMode ? Colors.amber.shade100 : Colors.amber.shade800,
+                                fontSize: 12,
                               ),
+                            ),
                           ],
                         ),
                       ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                      if (customers.isEmpty)
-                        SliverToBoxAdapter(
-                          child: emptyState(
-                            context,
-                            icon: Icons.people_outline,
-                            title: 'ยังไม่มีข้อมูลลูกค้า',
-                            message: 'เพิ่มลูกค้าใหม่เพื่อเริ่มต้นใช้งาน',
-                          ),
-                        )
-                      else if (filteredRecords.isEmpty)
-                        SliverToBoxAdapter(
-                          child: emptyState(
-                            context,
-                            icon: Icons.search_outlined,
-                            title: 'ไม่พบเบอร์โทรที่ค้นหา',
-                            message: 'ลองค้นหาด้วยเบอร์โทรอื่น',
-                          ),
-                        )
-                      else
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final record = filteredRecords[index];
-                            return _CustomerRecordTile(
-                              record: record,
-                              onUse: () => _useRecord(record),
-                              onDelete: () => _deleteRecord(record),
-                              onCall: () => _callCustomer(record),
-                              onMap: () => _openMap(record),
-                              onImage: () => _pickOrViewImage(record),
-                            );
-                          }, childCount: filteredRecords.length),
-                        ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
                     ],
                   ),
+                ),
+              _CustomerForm(
+                formKey: _formKey,
+                phoneController: _phoneController,
+                nameController: _nameController,
+                addressController: _addressController,
+                canFillDetails: true,
+                onSave: _saveCustomer,
+              ),
+            ],
           ),
         ),
       ),
@@ -561,17 +624,20 @@ class _CustomerForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isSmallScreen = screenWidth < 380;
+
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isSmallScreen ? 14 : 20),
         side: BorderSide(
           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isSmallScreen ? 14 : 24),
         child: Form(
           key: formKey,
           child: Column(
@@ -579,19 +645,22 @@ class _CustomerForm extends StatelessWidget {
             children: [
               Text(
                 'เพิ่ม/แก้ไข ข้อมูลลูกค้า',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                style: (isSmallScreen 
+                    ? Theme.of(context).textTheme.titleMedium 
+                    : Theme.of(context).textTheme.titleLarge)
+                    ?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: isSmallScreen ? 12 : 20),
               TextFormField(
                 key: const Key('customerPhoneField'),
                 controller: phoneController,
                 keyboardType: TextInputType.phone,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
+                  fontSize: isSmallScreen ? 16 : 18,
                 ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s]')),
@@ -607,6 +676,9 @@ class _CustomerForm extends StatelessWidget {
                   border: OutlineBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  contentPadding: isSmallScreen 
+                      ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12)
+                      : null,
                 ),
                 validator: (value) {
                   final phone = value?.trim() ?? '';
@@ -619,14 +691,14 @@ class _CustomerForm extends StatelessWidget {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: isSmallScreen ? 10 : 16),
               TextFormField(
                 key: const Key('customerNameField'),
                 controller: nameController,
                 enabled: canFillDetails,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 16,
+                  fontSize: isSmallScreen ? 14 : 16,
                 ),
                 decoration: InputDecoration(
                   labelText: 'ชื่อลูกค้า',
@@ -639,6 +711,9 @@ class _CustomerForm extends StatelessWidget {
                   border: OutlineBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  contentPadding: isSmallScreen 
+                      ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12)
+                      : null,
                 ),
                 validator: (value) {
                   if (!canFillDetails) {
@@ -650,14 +725,14 @@ class _CustomerForm extends StatelessWidget {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: isSmallScreen ? 10 : 16),
               TextFormField(
                 key: const Key('customerAddressField'),
                 controller: addressController,
                 enabled: canFillDetails,
-                minLines: 3,
+                minLines: isSmallScreen ? 2 : 3,
                 maxLines: 5,
-                style: const TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
                 decoration: InputDecoration(
                   labelText: 'ที่อยู่',
                   hintText: 'บ้านเลขที่ / ซอย / ถนน / จุดสังเกต',
@@ -670,6 +745,9 @@ class _CustomerForm extends StatelessWidget {
                   border: OutlineBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  contentPadding: isSmallScreen 
+                      ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12)
+                      : null,
                 ),
                 validator: (value) {
                   if (!canFillDetails) {
@@ -681,19 +759,24 @@ class _CustomerForm extends StatelessWidget {
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: isSmallScreen ? 16 : 24),
               FilledButton.icon(
                 key: const Key('saveCustomerButton'),
                 onPressed: onSave,
-                icon: const Icon(Icons.save, size: 28),
-                label: const Text(
+                icon: Icon(Icons.save, size: isSmallScreen ? 22 : 28),
+                label: Text(
                   'บันทึกข้อมูลลูกค้า',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 15 : 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  padding: EdgeInsets.symmetric(
+                    vertical: isSmallScreen ? 12 : 20,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(isSmallScreen ? 12 : 16),
                   ),
                 ),
               ),
@@ -727,9 +810,42 @@ class _CustomerRecordTile extends StatelessWidget {
   final VoidCallback onMap;
   final VoidCallback onImage;
 
+  Color _getPastelColor(String name) {
+    final hash = name.hashCode;
+    final double hue = (hash.abs() % 360).toDouble();
+    return HSLColor.fromAHSL(1.0, hue, 0.6, 0.85).toColor();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).width < 600;
+
+    final String firstLetter = record.name.isNotEmpty ? record.name.substring(0, 1).toUpperCase() : '?';
+    final Color avatarBgColor = _getPastelColor(record.name);
+    final Color avatarTextColor = HSLColor.fromColor(avatarBgColor).withLightness(0.3).toColor();
+
+    Widget leadingWidget;
+    if (record.imageUrl != null && record.imageUrl!.isNotEmpty) {
+      leadingWidget = CircleAvatar(
+        radius: 24,
+        backgroundImage: kIsWeb
+            ? NetworkImage(record.imageUrl!)
+            : FileImage(io.File(record.imageUrl!)) as ImageProvider,
+      );
+    } else {
+      leadingWidget = CircleAvatar(
+        radius: 24,
+        backgroundColor: avatarBgColor,
+        child: Text(
+          firstLetter,
+          style: TextStyle(
+            color: avatarTextColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+      );
+    }
 
     return Card(
       elevation: 2,
@@ -750,6 +866,7 @@ class _CustomerRecordTile extends StatelessWidget {
             horizontal: isCompact ? 14 : 20,
             vertical: 8,
           ),
+          leading: leadingWidget,
           title: Text(
             record.name,
             style: Theme.of(
@@ -768,59 +885,62 @@ class _CustomerRecordTile extends StatelessWidget {
           isThreeLine: true,
           onTap: onUse,
           trailing: isCompact
-              ? PopupMenuButton<_CustomerAction>(
-                  tooltip: 'เมนูลูกค้า',
-                  onSelected: (action) {
-                    switch (action) {
-                      case _CustomerAction.edit:
-                        onUse();
-                      case _CustomerAction.delete:
-                        onDelete();
-                      case _CustomerAction.call:
-                        onCall();
-                      case _CustomerAction.map:
-                        onMap();
-                      case _CustomerAction.image:
-                        onImage();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: _CustomerAction.call,
-                      child: ListTile(
-                        leading: const Icon(Icons.call_outlined),
-                        title: const Text('โทรออก'),
-                      ),
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.phone_in_talk_outlined),
+                      color: Theme.of(context).colorScheme.primary,
+                      onPressed: onCall,
+                      tooltip: 'โทรออก',
                     ),
-                    PopupMenuItem(
-                      value: _CustomerAction.map,
-                      child: ListTile(
-                        leading: const Icon(Icons.map_outlined),
-                        title: const Text('แผนที่'),
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.map_outlined),
+                      color: Theme.of(context).colorScheme.primary,
+                      onPressed: onMap,
+                      tooltip: 'แผนที่',
                     ),
-                    PopupMenuItem(
-                      value: _CustomerAction.image,
-                      child: ListTile(
-                        leading: const Icon(Icons.image_outlined),
-                        title: const Text('รูปภาพ'),
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    PopupMenuItem(
-                      value: _CustomerAction.edit,
-                      child: ListTile(
-                        leading: const Icon(Icons.edit_outlined),
-                        title: const Text('แก้ไข'),
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _CustomerAction.delete,
-                      child: ListTile(
-                        leading: const Icon(Icons.delete_outline),
-                        title: const Text('ลบ'),
-                      ),
-                    ),
+                    PopupMenuButton<_CustomerAction>(
+                      tooltip: 'เมนูลูกค้า',
+                      onSelected: (action) {
+                        switch (action) {
+                          case _CustomerAction.edit:
+                            onUse();
+                          case _CustomerAction.delete:
+                            onDelete();
+                          case _CustomerAction.image:
+                            onImage();
+                          default:
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: _CustomerAction.image,
+                          child: ListTile(
+                            leading: Icon(Icons.image_outlined),
+                            title: Text('รูปภาพ'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: _CustomerAction.edit,
+                          child: ListTile(
+                            leading: Icon(Icons.edit_outlined),
+                            title: Text('แก้ไข'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: _CustomerAction.delete,
+                          child: ListTile(
+                            leading: Icon(Icons.delete_outline, color: Colors.red),
+                            title: Text('ลบ', style: TextStyle(color: Colors.red)),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
+                    )
                   ],
                 )
               : Row(

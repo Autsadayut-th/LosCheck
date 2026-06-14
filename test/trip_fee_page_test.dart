@@ -270,6 +270,10 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: TripFeePage()));
       await pumpApp(tester);
 
+      // Tap the reports tab to build the summaries view
+      await tester.tap(find.text('สรุปและรายงาน'));
+      await pumpApp(tester);
+
       expect(find.text('สรุปรายวัน'), findsOneWidget);
     });
 

@@ -199,28 +199,35 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 380;
+
     return SafeArea(
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(isSmallScreen ? 12 : 20),
             child: ListView(
               children: [
                 Text(
                   'การตั้งค่า',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    fontSize: isSmallScreen ? 24 : null,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: isSmallScreen ? 16 : 24),
                 Text(
                   'การสำรองข้อมูล',
                   style: Theme.of(
                     context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: isSmallScreen ? 18 : null,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: isSmallScreen ? 10 : 16),
                 _BackupCard(
                   title: 'ส่งออกข้อมูล',
                   description:
@@ -245,14 +252,17 @@ class _SettingsPageState extends State<SettingsPage> {
                   icon: Icons.merge,
                   onPressed: _isProcessing ? null : _mergeBackup,
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: isSmallScreen ? 24 : 32),
                 Text(
                   'ข้อมูล',
                   style: Theme.of(
                     context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: isSmallScreen ? 18 : null,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: isSmallScreen ? 10 : 16),
                 _BackupCard(
                   title: 'ลบข้อมูลทั้งหมด',
                   description:
@@ -290,6 +300,9 @@ class _BackupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 380;
+
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = dangerous
         ? Theme.of(context).colorScheme.errorContainer.withValues(alpha: isDarkMode ? 0.2 : 0.15)
@@ -311,11 +324,11 @@ class _BackupCard extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
         child: Row(
           children: [
-            Icon(icon, color: foregroundColor, size: 32),
-            const SizedBox(width: 16),
+            Icon(icon, color: foregroundColor, size: isSmallScreen ? 24 : 32),
+            SizedBox(width: isSmallScreen ? 12 : 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,6 +338,7 @@ class _BackupCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: foregroundColor,
                       fontWeight: FontWeight.bold,
+                      fontSize: isSmallScreen ? 14 : null,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -332,6 +346,7 @@ class _BackupCard extends StatelessWidget {
                     description,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: isSmallScreen ? 11 : null,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -339,16 +354,27 @@ class _BackupCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: onPressed,
-              icon: const Icon(Icons.arrow_forward),
-              label: const Text('ไป'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: foregroundColor,
-                foregroundColor: Colors.white,
-              ),
-            ),
+            SizedBox(width: isSmallScreen ? 8 : 12),
+            isSmallScreen
+                ? IconButton(
+                    onPressed: onPressed,
+                    icon: const Icon(Icons.arrow_forward),
+                    style: IconButton.styleFrom(
+                      backgroundColor: foregroundColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(8),
+                      minimumSize: const Size(36, 36),
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: onPressed,
+                    icon: const Icon(Icons.arrow_forward),
+                    label: const Text('ไป'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: foregroundColor,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
           ],
         ),
       ),

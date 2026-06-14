@@ -317,228 +317,299 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     final weeklySummaries = _weeklySummaries;
     final monthlySummaries = _monthlySummaries;
 
-    return SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: Padding(
-            padding: EdgeInsets.all(
-              MediaQuery.sizeOf(context).width < 380 ? 12 : 20,
-            ),
-            child: CustomScrollView(
-                    slivers: [
-                      if (appDatabase.isUsingInMemory)
-                        SliverToBoxAdapter(
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: context.isDarkMode 
-                                ? Colors.amber.shade900.withValues(alpha: 0.2)
-                                : Colors.amber.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.amber.shade700,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.cloud_off_rounded, color: Colors.amber.shade800),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'โหมดออฟไลน์ (In-Memory)',
-                                        style: TextStyle(
-                                          color: context.isDarkMode ? Colors.amber.shade200 : Colors.amber.shade900,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'ข้อมูลจะไม่ถูกบันทึกลงเครื่องถาวร กรุณาอย่าปิดบราวเซอร์',
-                                        style: TextStyle(
-                                          color: context.isDarkMode ? Colors.amber.shade100 : Colors.amber.shade800,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      SliverToBoxAdapter(
-                        child: _SummaryPanel(
-                          totalBaht: _selectedDateTotal,
-                          totalRounds: _selectedDateRounds,
-                          canClear: selectedRecords.isNotEmpty,
-                          canExport: trips.isNotEmpty,
-                          onClear: _clearSelectedDate,
-                          onExport: () => _exportCsv(trips),
-                          dateLabel: _DailySummaryTile._formatDate(
-                            _selectedDate,
-                          ),
-                          onSelectDate: _selectDate,
-                        ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 28)),
-                      SliverToBoxAdapter(
-                        child: Text(
-                          'เพิ่มค่ารอบ',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                      SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio:
-                              MediaQuery.sizeOf(context).width > 600
-                              ? 1.2
-                              : 0.95,
-                          crossAxisSpacing: 5,
-                          mainAxisSpacing: 5,
-                        ),
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final option = _options[index];
-                          return _DistanceActionCard(
-                            option: option,
-                            onTap: () => _chooseDistance(option),
-                          );
-                        }, childCount: _options.length),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                      SliverToBoxAdapter(
-                        child: Text(
-                          'ประวัติ ${_DailySummaryTile._formatDate(_selectedDate)}',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                      if (selectedRecords.isEmpty)
-                        SliverToBoxAdapter(
-                          child: emptyState(
-                            context,
-                            icon: Icons.receipt_long_outlined,
-                            title: 'ยังไม่มีรายการในวันนี้',
-                            message: 'เพิ่มรายการเดินทางใหม่เพื่อดูรายละเอียด',
-                          ),
-                        )
-                      else
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final record = selectedRecords[index];
-                            return _RecordTile(
-                              record: record,
-                              onEdit: () => _editRecord(record),
-                              onDelete: () => _deleteRecord(record),
-                            );
-                          }, childCount: selectedRecords.length),
-                        ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                      SliverToBoxAdapter(
-                        child: Text(
-                          'สรุปรายวัน',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                      if (dailySummaries.isEmpty)
-                        SliverToBoxAdapter(
-                          child: emptyState(
-                            context,
-                            icon: Icons.calendar_today_outlined,
-                            title: 'ยังไม่มีสรุปรายวัน',
-                            message: 'เพิ่มรายการเดินทางเพื่อดูสรุปแบบรายวัน',
-                          ),
-                        )
-                      else
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            return _DailySummaryTile(
-                              summary: dailySummaries[index],
-                            );
-                          }, childCount: dailySummaries.length),
-                        ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                      SliverToBoxAdapter(
-                        child: Text(
-                          'สรุปรายสัปดาห์',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                      if (weeklySummaries.isEmpty)
-                        SliverToBoxAdapter(
-                          child: emptyState(
-                            context,
-                            icon: Icons.date_range_outlined,
-                            title: 'ยังไม่มีสรุปรายสัปดาห์',
-                            message:
-                                'เพิ่มรายการเดินทางเพื่อดูสรุปแบบรายสัปดาห์',
-                          ),
-                        )
-                      else
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            return _PeriodSummaryTile(
-                              summary: weeklySummaries[index],
-                              formatLabel: _formatWeekLabel,
-                            );
-                          }, childCount: weeklySummaries.length),
-                        ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                      SliverToBoxAdapter(
-                        child: Text(
-                          'สรุปรายเดือน',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                      if (monthlySummaries.isEmpty)
-                        SliverToBoxAdapter(
-                          child: emptyState(
-                            context,
-                            icon: Icons.calendar_month_outlined,
-                            title: 'ยังไม่มีสรุปรายเดือน',
-                            message: 'เพิ่มรายการเดินทางเพื่อดูสรุปแบบรายเดือน',
-                          ),
-                        )
-                      else
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            return _PeriodSummaryTile(
-                              summary: monthlySummaries[index],
-                              formatLabel: _formatMonthLabel,
-                            );
-                          }, childCount: monthlySummaries.length),
-                        ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                    ],
+    return DefaultTabController(
+      length: 2,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Material(
+              color: Theme.of(context).colorScheme.surface,
+              elevation: 1,
+              child: TabBar(
+                labelColor: Theme.of(context).colorScheme.primary,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: Theme.of(context).colorScheme.primary,
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                tabs: const [
+                  Tab(
+                    icon: Icon(Icons.edit_note),
+                    text: 'บันทึกค่ารอบ',
                   ),
+                  Tab(
+                    icon: Icon(Icons.analytics_outlined),
+                    text: 'สรุปและรายงาน',
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildLogTripTab(context, trips, selectedRecords),
+                  _buildReportsTab(context, dailySummaries, weeklySummaries, monthlySummaries),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogTripTab(
+    BuildContext context,
+    List<TripRecord> trips,
+    List<TripRecord> selectedRecords,
+  ) {
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isSmallScreen = screenWidth < 380;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: Padding(
+          padding: EdgeInsets.all(
+            isSmallScreen ? 10 : 20,
+          ),
+          child: CustomScrollView(
+            slivers: [
+              if (appDatabase.isUsingInMemory)
+                SliverToBoxAdapter(
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.isDarkMode 
+                        ? Colors.amber.shade900.withValues(alpha: 0.2)
+                        : Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.amber.shade700,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.cloud_off_rounded, color: Colors.amber.shade800),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'โหมดออฟไลน์ (In-Memory)',
+                                style: TextStyle(
+                                  color: context.isDarkMode ? Colors.amber.shade200 : Colors.amber.shade900,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'ข้อมูลจะไม่ถูกบันทึกลงเครื่องถาวร กรุณาอย่าปิดบราวเซอร์',
+                                style: TextStyle(
+                                  color: context.isDarkMode ? Colors.amber.shade100 : Colors.amber.shade800,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              SliverToBoxAdapter(
+                child: _SummaryPanel(
+                  totalBaht: _selectedDateTotal,
+                  totalRounds: _selectedDateRounds,
+                  canClear: selectedRecords.isNotEmpty,
+                  canExport: trips.isNotEmpty,
+                  onClear: _clearSelectedDate,
+                  onExport: () => _exportCsv(trips),
+                  dateLabel: _DailySummaryTile._formatDate(
+                    _selectedDate,
+                  ),
+                  onSelectDate: _selectDate,
+                ),
+              ),
+              SliverToBoxAdapter(child: SizedBox(height: isSmallScreen ? 16 : 28)),
+              SliverToBoxAdapter(
+                child: Text(
+                  'เพิ่มค่ารอบ',
+                  style: (isSmallScreen 
+                      ? Theme.of(context).textTheme.titleMedium 
+                      : Theme.of(context).textTheme.titleLarge)
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              SliverToBoxAdapter(child: SizedBox(height: isSmallScreen ? 8 : 16)),
+              SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio:
+                      MediaQuery.sizeOf(context).width > 600
+                      ? 1.4
+                      : (isSmallScreen ? 1.4 : 1.3),
+                  crossAxisSpacing: isSmallScreen ? 6 : 8,
+                  mainAxisSpacing: isSmallScreen ? 6 : 8,
+                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final option = _options[index];
+                  return _DistanceActionCard(
+                    option: option,
+                    onTap: () => _chooseDistance(option),
+                  );
+                }, childCount: _options.length),
+              ),
+              SliverToBoxAdapter(child: SizedBox(height: isSmallScreen ? 18 : 32)),
+              SliverToBoxAdapter(
+                child: Text(
+                  'ประวัติ ${_DailySummaryTile._formatDate(_selectedDate)}',
+                  style: (isSmallScreen 
+                      ? Theme.of(context).textTheme.titleMedium 
+                      : Theme.of(context).textTheme.titleLarge)
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              SliverToBoxAdapter(child: SizedBox(height: isSmallScreen ? 8 : 12)),
+              if (selectedRecords.isEmpty)
+                SliverToBoxAdapter(
+                  child: emptyState(
+                    context,
+                    icon: Icons.receipt_long_outlined,
+                    title: 'ยังไม่มีรายการในวันนี้',
+                    message: 'เพิ่มรายการเดินทางใหม่เพื่อดูรายละเอียด',
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((
+                    context,
+                    index,
+                  ) {
+                    final record = selectedRecords[index];
+                    return _RecordTile(
+                      record: record,
+                      onEdit: () => _editRecord(record),
+                      onDelete: () => _deleteRecord(record),
+                    );
+                  }, childCount: selectedRecords.length),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReportsTab(
+    BuildContext context,
+    List<_DailyTripSummary> dailySummaries,
+    List<_PeriodSummary> weeklySummaries,
+    List<_PeriodSummary> monthlySummaries,
+  ) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: Padding(
+          padding: EdgeInsets.all(
+            MediaQuery.sizeOf(context).width < 380 ? 12 : 20,
+          ),
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Text(
+                  'สรุปรายวัน',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              if (dailySummaries.isEmpty)
+                SliverToBoxAdapter(
+                  child: emptyState(
+                    context,
+                    icon: Icons.calendar_today_outlined,
+                    title: 'ยังไม่มีสรุปรายวัน',
+                    message: 'เพิ่มรายการเดินทางเพื่อดูสรุปแบบรายวัน',
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((
+                    context,
+                    index,
+                  ) {
+                    return _DailySummaryTile(
+                      summary: dailySummaries[index],
+                    );
+                  }, childCount: dailySummaries.length),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              SliverToBoxAdapter(
+                child: Text(
+                  'สรุปรายสัปดาห์',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              if (weeklySummaries.isEmpty)
+                SliverToBoxAdapter(
+                  child: emptyState(
+                    context,
+                    icon: Icons.date_range_outlined,
+                    title: 'ยังไม่มีสรุปรายสัปดาห์',
+                    message: 'เพิ่มรายการเดินทางเพื่อดูสรุปแบบรายสัปดาห์',
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((
+                    context,
+                    index,
+                  ) {
+                    return _PeriodSummaryTile(
+                      summary: weeklySummaries[index],
+                      formatLabel: _formatWeekLabel,
+                    );
+                  }, childCount: weeklySummaries.length),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              SliverToBoxAdapter(
+                child: Text(
+                  'สรุปรายเดือน',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              if (monthlySummaries.isEmpty)
+                SliverToBoxAdapter(
+                  child: emptyState(
+                    context,
+                    icon: Icons.calendar_month_outlined,
+                    title: 'ยังไม่มีสรุปรายเดือน',
+                    message: 'เพิ่มรายการเดินทางเพื่อดูสรุปแบบรายเดือน',
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((
+                    context,
+                    index,
+                  ) {
+                    return _PeriodSummaryTile(
+                      summary: monthlySummaries[index],
+                      formatLabel: _formatMonthLabel,
+                    );
+                  }, childCount: monthlySummaries.length),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+            ],
           ),
         ),
       ),
@@ -554,9 +625,12 @@ class _DistanceActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isSmallScreen = screenWidth < 380;
+
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -565,11 +639,14 @@ class _DistanceActionCard extends StatelessWidget {
             border: Border(
               top: BorderSide(
                 color: Theme.of(context).colorScheme.primary,
-                width: 6,
+                width: isSmallScreen ? 3 : 4,
               ),
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 6 : 8,
+            vertical: isSmallScreen ? 8 : 10,
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -578,30 +655,36 @@ class _DistanceActionCard extends StatelessWidget {
                   child: Text(
                     option.label,
                     textAlign: TextAlign.center,
-                    maxLines: 3,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: (isSmallScreen 
+                        ? Theme.of(context).textTheme.bodySmall 
+                        : Theme.of(context).textTheme.bodyMedium)
+                        ?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: isSmallScreen ? 2 : 4),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 10 : 12,
+                  vertical: isSmallScreen ? 3 : 4,
                 ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '${option.rateBaht} ฿',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
+                  style: (isSmallScreen 
+                      ? Theme.of(context).textTheme.bodyMedium 
+                      : Theme.of(context).textTheme.titleSmall)
+                      ?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
                 ),
               ),
             ],
@@ -649,24 +732,41 @@ class _SummaryPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCompact = MediaQuery.sizeOf(context).width < 600;
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isSmallScreen = screenWidth < 380;
+    final isCompact = screenWidth < 600;
+
     final actionButtons = [
       FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: Colors.white.withValues(alpha: 0.2),
           foregroundColor: Colors.white,
+          padding: isSmallScreen 
+              ? const EdgeInsets.symmetric(vertical: 8, horizontal: 10)
+              : null,
+          textStyle: isSmallScreen ? const TextStyle(fontSize: 12) : null,
         ),
         onPressed: canClear ? onClear : null,
-        icon: const Icon(Icons.delete_sweep_outlined),
+        icon: Icon(
+          Icons.delete_sweep_outlined,
+          size: isSmallScreen ? 16 : null,
+        ),
         label: const Text('ล้างข้อมูล'),
       ),
       FilledButton.icon(
         style: FilledButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.teal.shade800,
+          padding: isSmallScreen 
+              ? const EdgeInsets.symmetric(vertical: 8, horizontal: 10)
+              : null,
+          textStyle: isSmallScreen ? const TextStyle(fontSize: 12) : null,
         ),
         onPressed: canExport ? onExport : null,
-        icon: const Icon(Icons.file_download_outlined),
+        icon: Icon(
+          Icons.file_download_outlined,
+          size: isSmallScreen ? 16 : null,
+        ),
         label: const Text('Export CSV'),
       ),
     ];
@@ -688,7 +788,7 @@ class _SummaryPanel extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(isCompact ? 16 : 24),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : (isCompact ? 16 : 24)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -700,27 +800,32 @@ class _SummaryPanel extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
+                    style: (isSmallScreen 
+                        ? Theme.of(context).textTheme.titleMedium 
+                        : Theme.of(context).textTheme.titleLarge)
+                        ?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
                   ),
                 ),
                 IconButton(
+                  iconSize: isSmallScreen ? 20 : 24,
                   icon: const Icon(Icons.edit_calendar, color: Colors.white),
                   onPressed: onSelectDate,
                   tooltip: 'เลือกวันที่',
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: isSmallScreen ? 4 : 8),
             Text(
               '$totalBaht ฿',
               textAlign: TextAlign.center,
-              style:
-                  (isCompact
-                          ? Theme.of(context).textTheme.headlineLarge
-                          : Theme.of(context).textTheme.displayMedium)
+              style: (isSmallScreen 
+                      ? Theme.of(context).textTheme.headlineMedium 
+                      : (isCompact 
+                          ? Theme.of(context).textTheme.headlineLarge 
+                          : Theme.of(context).textTheme.displayMedium))
                       ?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
@@ -730,17 +835,20 @@ class _SummaryPanel extends StatelessWidget {
             Text(
               'รวม $totalRounds รอบ',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.9),
-              ),
+              style: (isSmallScreen 
+                  ? Theme.of(context).textTheme.bodyMedium 
+                  : Theme.of(context).textTheme.titleMedium)
+                  ?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isSmallScreen ? 12 : 24),
             if (isCompact)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   actionButtons[0],
-                  const SizedBox(height: 8),
+                  SizedBox(height: isSmallScreen ? 6 : 8),
                   actionButtons[1],
                 ],
               )

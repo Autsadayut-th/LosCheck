@@ -286,6 +286,9 @@ class _StatCardState extends State<_StatCard>
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isSmallScreen = screenWidth < 380;
+
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) => _controller.reverse(),
@@ -305,7 +308,7 @@ class _StatCardState extends State<_StatCard>
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(isSmallScreen ? 12 : 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -314,40 +317,52 @@ class _StatCardState extends State<_StatCard>
                     Icon(
                       widget.icon,
                       color: widget.textColor.withValues(alpha: 0.8),
-                      size: 28,
+                      size: isSmallScreen ? 20 : 28,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: isSmallScreen ? 6 : 8),
                     Expanded(
                       child: Text(
                         widget.title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: widget.textColor.withValues(alpha: 0.9),
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: (isSmallScreen 
+                            ? Theme.of(context).textTheme.bodySmall 
+                            : Theme.of(context).textTheme.titleSmall)
+                            ?.copyWith(
+                              color: widget.textColor.withValues(alpha: 0.9),
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: isSmallScreen ? 8 : 16),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Text(
-                      widget.value,
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -1,
-                        color: widget.textColor,
+                    Expanded(
+                      child: Text(
+                        widget.value,
+                        overflow: TextOverflow.ellipsis,
+                        style: (isSmallScreen 
+                            ? Theme.of(context).textTheme.headlineSmall 
+                            : Theme.of(context).textTheme.displaySmall)
+                            ?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -1,
+                              color: widget.textColor,
+                            ),
                       ),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       widget.unit,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: widget.textColor.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: (isSmallScreen 
+                          ? Theme.of(context).textTheme.bodySmall 
+                          : Theme.of(context).textTheme.bodyMedium)
+                          ?.copyWith(
+                            color: widget.textColor.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                   ],
                 ),
@@ -367,52 +382,66 @@ class _DistanceStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isSmallScreen = screenWidth < 380;
+
     return Card(
       elevation: 0,
       margin: EdgeInsets.only(bottom: DesignTokens.spacingXs2),
       shape: RoundedRectangleBorder(borderRadius: DesignTokens.borderRadiusLg),
       child: Padding(
-        padding: DesignTokens.paddingM,
+        padding: isSmallScreen ? const EdgeInsets.all(10) : DesignTokens.paddingM,
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(DesignTokens.spacingS),
+              padding: EdgeInsets.all(isSmallScreen ? 6 : DesignTokens.spacingS),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primaryContainer,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.route,
+                size: isSmallScreen ? 18 : 24,
                 color: Theme.of(context).colorScheme.onPrimaryContainer,
               ),
             ),
-            SizedBox(width: DesignTokens.spacingM),
+            SizedBox(width: isSmallScreen ? 8 : DesignTokens.spacingM),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     stat.label,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: (isSmallScreen 
+                        ? Theme.of(context).textTheme.bodyMedium 
+                        : Theme.of(context).textTheme.titleMedium)
+                        ?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
-                  SizedBox(height: DesignTokens.spacingXs),
+                  SizedBox(height: isSmallScreen ? 2 : DesignTokens.spacingXs),
                   Text(
                     '${stat.count} รอบ',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    style: (isSmallScreen 
+                        ? Theme.of(context).textTheme.bodySmall 
+                        : Theme.of(context).textTheme.bodyMedium)
+                        ?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             Text(
               '${stat.total} ฿',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              style: (isSmallScreen 
+                  ? Theme.of(context).textTheme.titleMedium 
+                  : Theme.of(context).textTheme.titleLarge)
+                  ?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
             ),
           ],
         ),

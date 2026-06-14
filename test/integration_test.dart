@@ -118,6 +118,10 @@ void main() {
       await tester.tap(find.text('ลูกค้า'));
       await pumpApp(tester);
 
+      // Switch to Tab 2 to add customer
+      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
+      await pumpApp(tester);
+
       // Add a customer
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -137,10 +141,14 @@ void main() {
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
       await pumpApp(tester);
 
+      // Switch to Tab 1 to verify it has been added
+      await tester.tap(find.text('รายชื่อลูกค้า'));
+      await pumpApp(tester);
+
       expect(find.text('สมชาย'), findsOneWidget);
       expect(find.textContaining('0812345678\n'), findsOneWidget);
 
-      // Edit by tapping the tile
+      // Edit by tapping the tile (auto-switches to Tab 2)
       await tester.tap(find.text('สมชาย'));
       await pumpApp(tester);
 
@@ -150,6 +158,10 @@ void main() {
       );
       await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
+      await pumpApp(tester);
+
+      // Switch to Tab 1 to verify and delete
+      await tester.tap(find.text('รายชื่อลูกค้า'));
       await pumpApp(tester);
 
       expect(find.text('สมชาย ใหม่'), findsOneWidget);
@@ -250,6 +262,10 @@ void main() {
       await tester.tap(find.text('ลูกค้า'));
       await pumpApp(tester);
 
+      // Switch to Tab 2 to add customers
+      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
+      await pumpApp(tester);
+
       // Add multiple customers
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -269,8 +285,7 @@ void main() {
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
       await pumpApp(tester);
 
-      await tester.ensureVisible(find.byKey(const Key('customerPhoneField')));
-      await pumpApp(tester);
+      // Add second customer
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0898765432',
@@ -286,9 +301,11 @@ void main() {
         '456 ถนนสีลม',
       );
       await pumpApp(tester);
-      await tester.ensureVisible(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
+      await pumpApp(tester);
+
+      // Switch to Tab 1 to filter
+      await tester.tap(find.text('รายชื่อลูกค้า'));
       await pumpApp(tester);
 
       // Search

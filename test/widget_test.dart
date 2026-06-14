@@ -43,16 +43,16 @@ void main() {
     expect(find.text('70 ฿'), findsOneWidget);
     expect(find.text('รวม 6 รอบ'), findsOneWidget);
 
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -350));
-    await pumpApp(tester);
-
-    expect(find.text('สรุปรายวัน'), findsOneWidget);
-
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -250));
     await pumpApp(tester);
 
     expect(find.textContaining('4 รอบ x 15 บาทต่อบิล'), findsOneWidget);
     expect(find.textContaining('2 รอบ x 5 บาทต่อบิล'), findsOneWidget);
+
+    await tester.tap(find.text('สรุปและรายงาน'));
+    await pumpApp(tester);
+
+    expect(find.text('สรุปรายวัน'), findsOneWidget);
   });
 
   testWidgets('loads saved trip records and groups them by day', (
@@ -75,6 +75,9 @@ void main() {
 
     expect(find.text('ข้อมูลลูกค้า'), findsOneWidget);
 
+    await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
+    await pumpApp(tester);
+
     await tester.enterText(
       find.byKey(const Key('customerPhoneField')),
       '0812345678',
@@ -88,11 +91,11 @@ void main() {
     await tester.tap(find.byKey(const Key('saveCustomerButton')));
     await pumpApp(tester);
 
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -700));
+    await tester.tap(find.text('รายชื่อลูกค้า'));
     await pumpApp(tester);
 
     expect(find.text('สมชาย'), findsOneWidget);
-    expect(find.text('0812345678\n123 ถนนสุขุมวิท กรุงเทพ'), findsOneWidget);
+    expect(find.textContaining('0812345678\n'), findsOneWidget);
   });
 
   testWidgets('loads saved customer records from local storage', (

@@ -27,7 +27,7 @@ Future<void> configureTestPathProvider() async {
 Future<void> pumpApp(WidgetTester tester) async {
   await tester.pump();
   await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
-  await tester.pump(const Duration(milliseconds: 300));
+  await tester.pump(const Duration(seconds: 1));
   await tester.pump();
 }
 
