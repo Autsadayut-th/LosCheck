@@ -321,7 +321,7 @@ class _RoutePlanningPageState extends State<RoutePlanningPage> {
             shape: RoundedRectangleBorder(
               borderRadius: DesignTokens.borderRadiusLg,
               side: BorderSide(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                 width: 1.5,
               ),
             ),
@@ -401,19 +401,19 @@ class _RoutePlanningPageState extends State<RoutePlanningPage> {
               // Segmented Auto/Manual toggle
               Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 padding: const EdgeInsets.all(4),
                 child: Row(
                   children: [
                     _ModeToggleButton(
-                      label: 'Auto (คำนวณใกล้ที่สุด)',
+                      label: 'จัดออโต้',
                       isSelected: _isAutoMode,
                       onPressed: () => _toggleRouteMode(true),
                     ),
                     _ModeToggleButton(
-                      label: 'Manual (จัดคิวเอง)',
+                      label: 'จัดเอง',
                       isSelected: !_isAutoMode,
                       onPressed: () => _toggleRouteMode(false),
                     ),
@@ -644,7 +644,7 @@ class _RoutePlanningPageState extends State<RoutePlanningPage> {
                     'เบอร์โทร: ${activeCustomer.phone}',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                      color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -652,7 +652,7 @@ class _RoutePlanningPageState extends State<RoutePlanningPage> {
                     'ที่อยู่: ${activeCustomer.address}',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                      color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -705,19 +705,19 @@ class _RoutePlanningPageState extends State<RoutePlanningPage> {
               ),
               Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 padding: const EdgeInsets.all(4),
                 child: Row(
                   children: [
                     _ModeToggleButton(
-                      label: 'Auto (ระยะทาง)',
+                      label: 'จัดออโต้',
                       isSelected: _isAutoMode,
                       onPressed: () => _toggleRouteMode(true),
                     ),
                     _ModeToggleButton(
-                      label: 'Manual (จัดเอง)',
+                      label: 'จัดเอง',
                       isSelected: !_isAutoMode,
                       onPressed: () => _toggleRouteMode(false),
                     ),
@@ -988,7 +988,7 @@ class _QueueItemCard extends StatelessWidget {
               distanceLabel,
               style: TextStyle(
                 fontSize: 11,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
                 fontWeight: FontWeight.w500,
               ),
             ),

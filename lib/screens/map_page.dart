@@ -108,7 +108,7 @@ class _MapPageState extends State<MapPage> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
+                      color: Colors.black.withOpacity(0.25),
                       blurRadius: 6,
                       offset: const Offset(0, 3),
                     ),
@@ -154,7 +154,7 @@ class _MapPageState extends State<MapPage> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: Colors.black.withOpacity(0.2),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -201,7 +201,7 @@ class _MapPageState extends State<MapPage> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
+                color: Colors.black.withOpacity(0.15),
                 blurRadius: 15,
                 offset: const Offset(0, -2),
               ),
@@ -485,7 +485,7 @@ class _MapPageState extends State<MapPage> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
+                          color: Colors.black.withOpacity(0.15),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),

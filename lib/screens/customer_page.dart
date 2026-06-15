@@ -930,7 +930,7 @@ class _CustomerForm extends StatelessWidget {
                   hintText: 'วางลิงก์จาก Google Maps เพื่อดึงพิกัดอัตโนมัติ',
                   prefixIcon: const Icon(Icons.link),
                   filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                   border: OutlineBorder(borderRadius: BorderRadius.circular(12)),
                   contentPadding: isSmallScreen ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12) : null,
                 ),

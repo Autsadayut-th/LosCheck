@@ -157,7 +157,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('สมชาย'), findsNothing);
-      expect(find.text('มานี'), findsOneWidget);
+      expect(find.text('มานี'), findsNWidgets(2)); // One in search text field, one in the customer tile
     });
   });
 }
