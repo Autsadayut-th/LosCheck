@@ -12,8 +12,10 @@ import '../models/customer_record.dart';
 import '../database/hive_database.dart';
 import '../providers/app_state_provider.dart';
 import '../services/csv_export_service.dart';
+import '../services/location_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../core/theme_extensions.dart';
+import 'map_page.dart';
 
 class CustomerPage extends StatefulWidget {
   const CustomerPage({super.key});
@@ -30,6 +32,9 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _latitudeController = TextEditingController();
+  final TextEditingController _longitudeController = TextEditingController();
+  final TextEditingController _mapLinkController = TextEditingController();
   final TextEditingController _phoneFilterController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
@@ -65,6 +70,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     _tabController = TabController(length: 2, vsync: this);
     _phoneController.addListener(_onPhoneInputChanged);
     _phoneFilterController.addListener(_onPhoneFilterChanged);
+    _mapLinkController.addListener(_onMapLinkChanged);
   }
 
   @override
@@ -74,6 +80,9 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     _phoneController.dispose();
     _nameController.dispose();
     _addressController.dispose();
+    _latitudeController.dispose();
+    _longitudeController.dispose();
+    _mapLinkController.dispose();
     _phoneFilterController.dispose();
     super.dispose();
   }
@@ -146,14 +155,21 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     }
 
     try {
+      final latText = _latitudeController.text.trim();
+      final lngText = _longitudeController.text.trim();
+      final latitude = latText.isNotEmpty ? double.tryParse(latText) : null;
+      final longitude = lngText.isNotEmpty ? double.tryParse(lngText) : null;
+
       final record = CustomerRecord(
         phone: _phoneController.text.trim(),
         name: _nameController.text.trim(),
         address: _addressController.text.trim(),
         createdAt: DateTime.now(),
+        latitude: latitude,
+        longitude: longitude,
       );
 
-      debugPrint('Creating customer record: ${record.phone}, ${record.name}');
+      debugPrint('Creating customer record: ${record.phone}, ${record.name}, lat: ${record.latitude}, lng: ${record.longitude}');
       debugPrint('Database initialized: ${appDatabase.isInitialized}');
 
       // Persist only the newly added/edited record. `insertCustomer` uses
@@ -166,6 +182,8 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
         _phoneController.clear();
         _nameController.clear();
         _addressController.clear();
+        _latitudeController.clear();
+        _longitudeController.clear();
         _phoneFilterController.clear();
         _phoneInput = '';
         _debouncedPhoneInput = '';
@@ -242,12 +260,129 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       _phoneController.text = record.phone;
       _nameController.text = record.name;
       _addressController.text = record.address;
+      _latitudeController.text = record.latitude?.toString() ?? '';
+      _longitudeController.text = record.longitude?.toString() ?? '';
       _phoneFilterController.clear();
       _phoneInput = record.phone;
       _debouncedPhoneInput = record.phone;
       _debouncedPhoneFilter = '';
     });
     _tabController.animateTo(1);
+  }
+
+  Future<void> _fetchCurrentLocation() async {
+    try {
+      final loc = await LocationService().getCurrentLocation();
+      if (loc != null) {
+        setState(() {
+          _latitudeController.text = loc['latitude']!.toStringAsFixed(6);
+          _longitudeController.text = loc['longitude']!.toStringAsFixed(6);
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ดึงพิกัด GPS ปัจจุบันสำเร็จ'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ไม่สามารถดึงพิกัดปัจจุบันได้ กรุณาอนุญาตสิทธิ์เข้าตำแหน่งหรือระบุพิกัดด้วยตัวเอง'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการดึงตำแหน่ง: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _onMapLinkChanged() {
+    final text = _mapLinkController.text.trim();
+    if (text.isEmpty) return;
+
+    final coords = _parseGoogleMapsUrl(text);
+    if (coords != null) {
+      setState(() {
+        _latitudeController.text = coords['latitude']!.toStringAsFixed(6);
+        _longitudeController.text = coords['longitude']!.toStringAsFixed(6);
+        _mapLinkController.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ดึงพิกัดจากลิงก์ Google Maps สำเร็จ!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Map<String, double>? _parseGoogleMapsUrl(String url) {
+    try {
+      final decodedUrl = Uri.decodeFull(url);
+      
+      // 1. Query parameters (query= or q=)
+      final uri = Uri.tryParse(decodedUrl);
+      if (uri != null) {
+        final queryParam = uri.queryParameters['query'] ?? uri.queryParameters['q'];
+        if (queryParam != null) {
+          final parts = queryParam.split(',');
+          if (parts.length >= 2) {
+            final lat = double.tryParse(parts[0].trim());
+            final lng = double.tryParse(parts[1].trim());
+            if (lat != null && lng != null) {
+              return {'latitude': lat, 'longitude': lng};
+            }
+          }
+        }
+      }
+
+      // 2. @lat,lng format
+      final atRegex = RegExp(r'@(-?\d+\.\d+),(-?\d+\.\d+)');
+      final atMatch = atRegex.firstMatch(decodedUrl);
+      if (atMatch != null) {
+        final lat = double.tryParse(atMatch.group(1) ?? '');
+        final lng = double.tryParse(atMatch.group(2) ?? '');
+        if (lat != null && lng != null) {
+          return {'latitude': lat, 'longitude': lng};
+        }
+      }
+
+      // 3. /place/lat,lng or search/lat,lng
+      final placeRegex = RegExp(r'(?:place|search|maps)\/(-?\d+\.\d+),(-?\d+\.\d+)');
+      final placeMatch = placeRegex.firstMatch(decodedUrl);
+      if (placeMatch != null) {
+        final lat = double.tryParse(placeMatch.group(1) ?? '');
+        final lng = double.tryParse(placeMatch.group(2) ?? '');
+        if (lat != null && lng != null) {
+          return {'latitude': lat, 'longitude': lng};
+        }
+      }
+
+      // 4. Generic lat,lng regex fallback
+      final genericRegex = RegExp(r'(-?\d+\.\d+),\s*(-?\d+\.\d+)');
+      final genericMatch = genericRegex.firstMatch(decodedUrl);
+      if (genericMatch != null) {
+        final lat = double.tryParse(genericMatch.group(1) ?? '');
+        final lng = double.tryParse(genericMatch.group(2) ?? '');
+        if (lat != null && lng != null) {
+          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            return {'latitude': lat, 'longitude': lng};
+          }
+        }
+      }
+    } catch (_) {
+      // Return null on parsing issues
+    }
+    return null;
   }
 
   Future<void> _callCustomer(CustomerRecord record) async {
@@ -264,7 +399,12 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   }
 
   Future<void> _openMap(CustomerRecord record) async {
-    final query = Uri.encodeComponent(record.address);
+    final String query;
+    if (record.latitude != null && record.longitude != null) {
+      query = '${record.latitude},${record.longitude}';
+    } else {
+      query = Uri.encodeComponent(record.address);
+    }
     final uri = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=$query',
     );
@@ -422,6 +562,14 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
+                    ),
+                    IconButton(
+                      tooltip: 'ดูแผนที่ลูกค้า',
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const MapPage()),
+                      ),
+                      icon: Icon(Icons.map, color: Theme.of(context).colorScheme.primary),
                     ),
                     if (customers.isNotEmpty)
                       IconButton(
@@ -590,8 +738,12 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                 phoneController: _phoneController,
                 nameController: _nameController,
                 addressController: _addressController,
+                latitudeController: _latitudeController,
+                longitudeController: _longitudeController,
+                mapLinkController: _mapLinkController,
                 canFillDetails: true,
                 onSave: _saveCustomer,
+                onGetLocation: _fetchCurrentLocation,
               ),
             ],
           ),
@@ -611,16 +763,24 @@ class _CustomerForm extends StatelessWidget {
     required this.phoneController,
     required this.nameController,
     required this.addressController,
+    required this.latitudeController,
+    required this.longitudeController,
+    required this.mapLinkController,
     required this.canFillDetails,
     required this.onSave,
+    required this.onGetLocation,
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController phoneController;
   final TextEditingController nameController;
   final TextEditingController addressController;
+  final TextEditingController latitudeController;
+  final TextEditingController longitudeController;
+  final TextEditingController mapLinkController;
   final bool canFillDetails;
   final VoidCallback onSave;
+  final VoidCallback onGetLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -759,6 +919,91 @@ class _CustomerForm extends StatelessWidget {
                   return null;
                 },
               ),
+              SizedBox(height: isSmallScreen ? 10 : 16),
+              TextFormField(
+                key: const Key('customerMapLinkField'),
+                controller: mapLinkController,
+                enabled: canFillDetails,
+                style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                decoration: InputDecoration(
+                  labelText: 'ลิงก์แผนที่ Google Maps',
+                  hintText: 'วางลิงก์จาก Google Maps เพื่อดึงพิกัดอัตโนมัติ',
+                  prefixIcon: const Icon(Icons.link),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  border: OutlineBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: isSmallScreen ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12) : null,
+                ),
+              ),
+              SizedBox(height: isSmallScreen ? 10 : 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      key: const Key('customerLatitudeField'),
+                      controller: latitudeController,
+                      enabled: canFillDetails,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                      decoration: InputDecoration(
+                        labelText: 'Latitude',
+                        hintText: 'เช่น 13.7563',
+                        prefixIcon: const Icon(Icons.pin_drop_outlined),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        border: OutlineBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: isSmallScreen ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12) : null,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return null;
+                        final val = double.tryParse(value.trim());
+                        if (val == null) return 'ตัวเลขไม่ถูกต้อง';
+                        if (val < -90 || val > 90) return 'ต้องอยู่ระหว่าง -90 ถึง 90';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextFormField(
+                      key: const Key('customerLongitudeField'),
+                      controller: longitudeController,
+                      enabled: canFillDetails,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      style: TextStyle(fontSize: isSmallScreen ? 14 : 16),
+                      decoration: InputDecoration(
+                        labelText: 'Longitude',
+                        hintText: 'เช่น 100.5018',
+                        prefixIcon: const Icon(Icons.pin_drop_outlined),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        border: OutlineBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: isSmallScreen ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12) : null,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return null;
+                        final val = double.tryParse(value.trim());
+                        if (val == null) return 'ตัวเลขไม่ถูกต้อง';
+                        if (val < -180 || val > 180) return 'ต้องอยู่ระหว่าง -180 ถึง 180';
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: onGetLocation,
+                icon: const Icon(Icons.my_location),
+                label: const Text('ดึงพิกัดจาก GPS ปัจจุบัน'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
               SizedBox(height: isSmallScreen ? 16 : 24),
               FilledButton.icon(
                 key: const Key('saveCustomerButton'),
@@ -876,7 +1121,10 @@ class _CustomerRecordTile extends StatelessWidget {
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              '${record.phone}\n${record.address}',
+              '${record.phone}\n${record.address}' +
+                  (record.latitude != null && record.longitude != null
+                      ? '\nพิกัด: ${record.latitude}, ${record.longitude}'
+                      : ''),
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(height: 1.5),

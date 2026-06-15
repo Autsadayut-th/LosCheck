@@ -7,6 +7,7 @@ import 'screens/customer_page.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/trip_fee_page.dart';
 import 'screens/settings_page.dart';
+import 'screens/route_planning_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -133,6 +134,7 @@ class _HomeShellState extends State<HomeShell> {
   static const List<Widget> _pages = [
     DashboardPage(),
     TripFeePage(),
+    RoutePlanningPage(),
     CustomerPage(),
     SettingsPage(),
   ];
@@ -240,6 +242,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
             label: 'ค่ารอบ',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.route_outlined),
+            selectedIcon: Icon(Icons.route),
+            label: 'แผนเส้นทาง',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_pin_circle_outlined),

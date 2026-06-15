@@ -11,12 +11,29 @@ class CustomerRecordAdapter extends TypeAdapter<CustomerRecord> {
 
   @override
   CustomerRecord read(BinaryReader reader) {
+    final phone = reader.readString();
+    final name = reader.readString();
+    final address = reader.readString();
+    final createdAt = DateTime.fromMillisecondsSinceEpoch(reader.readInt());
+    final imageUrl = reader.read() as String?;
+    
+    double? latitude;
+    double? longitude;
+    try {
+      latitude = reader.read() as double?;
+      longitude = reader.read() as double?;
+    } catch (_) {
+      // Gracefully handle legacy records without coordinates
+    }
+
     return CustomerRecord(
-      phone: reader.readString(),
-      name: reader.readString(),
-      address: reader.readString(),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(reader.readInt()),
-      imageUrl: reader.read() as String?,
+      phone: phone,
+      name: name,
+      address: address,
+      createdAt: createdAt,
+      imageUrl: imageUrl,
+      latitude: latitude,
+      longitude: longitude,
     );
   }
 
@@ -27,6 +44,8 @@ class CustomerRecordAdapter extends TypeAdapter<CustomerRecord> {
     writer.writeString(obj.address);
     writer.writeInt(obj.createdAt.millisecondsSinceEpoch);
     writer.write(obj.imageUrl);
+    writer.write(obj.latitude);
+    writer.write(obj.longitude);
   }
 }
 

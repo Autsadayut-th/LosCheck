@@ -9,6 +9,7 @@ import '../providers/app_state_provider.dart';
 import '../widgets/shimmer_loading.dart';
 import '../core/design_tokens.dart';
 import '../core/theme_extensions.dart';
+import 'map_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -206,6 +207,63 @@ class _DashboardContent extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spacingM),
+          FadeInSlide(
+            delay: const Duration(milliseconds: 250),
+            child: Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: DesignTokens.borderRadiusLg),
+              child: InkWell(
+                borderRadius: DesignTokens.borderRadiusLg,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MapPage()),
+                ),
+                child: Padding(
+                  padding: DesignTokens.paddingM,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.map_outlined,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'แผนที่ลูกค้า (Interactive Map)',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'ดูตำแหน่งลูกค้าบนแผนที่, นำทาง, และค้นหาข้อมูล',
+                              style: TextStyle(color: Colors.grey, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: DesignTokens.spacingXl),

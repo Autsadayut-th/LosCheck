@@ -54,6 +54,8 @@ void main() {
         name: 'สมชาย',
         address: '123 ถนนสุขุมวิท',
         createdAt: now,
+        latitude: 13.7563,
+        longitude: 100.5018,
       );
       final json = record.toJson();
 
@@ -62,6 +64,20 @@ void main() {
       expect(restored.name, 'สมชาย');
       expect(restored.address, '123 ถนนสุขุมวิท');
       expect(restored.createdAt, now);
+      expect(restored.latitude, 13.7563);
+      expect(restored.longitude, 100.5018);
+    });
+
+    test('fromJson handles missing coordinate fields gracefully', () {
+      final json = <String, dynamic>{
+        'phone': '0812345678',
+        'name': 'สมชาย',
+        'address': '123 ถนนสุขุมวิท',
+        'createdAt': now.toIso8601String(),
+      };
+      final restored = CustomerRecord.fromJson(json);
+      expect(restored.latitude, isNull);
+      expect(restored.longitude, isNull);
     });
   });
 

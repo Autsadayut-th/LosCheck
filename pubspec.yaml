@@ -45,6 +45,10 @@ dependencies:
   hive_flutter: ^1.1.0
   provider: ^6.1.2
 
+  # Interactive Maps
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
