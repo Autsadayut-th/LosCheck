@@ -39,6 +39,9 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   int _selectedDateTotal = 0;
   int _selectedDateRounds = 0;
 
+  // Memoization: skip recompute when trips list hasn't changed
+  List<TripRecord>? _lastComputedTrips;
+
   List<_PeriodSummary> _buildPeriodSummaries(
     List<TripRecord> trips,
     DateTime Function(DateTime) keyFn,
@@ -93,6 +96,10 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   }
 
   void _refreshDerivedData(List<TripRecord> trips) {
+    // Skip expensive recalculation if the trips list hasn't changed
+    if (identical(trips, _lastComputedTrips)) return;
+    _lastComputedTrips = trips;
+
     final selectedDateRecords = <TripRecord>[];
     var selectedDateTotal = 0;
     var selectedDateRounds = 0;
@@ -128,21 +135,70 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     super.dispose();
   }
 
-  Future<void> _chooseDistance(DistanceOption option) async {
-    debugPrint('=== _chooseDistance Started ===');
-    debugPrint('Option: ${option.label}, Rate: ${option.rateBaht}');
+  Future<void> _logInstantTrip(DistanceOption option) async {
+    final now = DateTime.now();
+    final createdAt = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      now.hour,
+      now.minute,
+      now.second,
+    );
 
+    final record = TripRecord(
+      distanceLabel: option.label,
+      rateBaht: option.rateBaht,
+      rounds: 1,
+      createdAt: createdAt,
+    );
+
+    try {
+      final insertedId = await appDatabase.insertTrip(record);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('บันทึกสำเร็จ: ${option.label} (1 รอบ)'),
+          action: SnackBarAction(
+            label: 'เลิกทำ',
+            onPressed: () async {
+              try {
+                await appDatabase.deleteTrip(insertedId);
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('เกิดข้อผิดพลาดในการเลิกทำ: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการบันทึก: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  Future<void> _logCustomTrip(DistanceOption option) async {
     final rounds = await showDialog<int>(
       context: context,
       builder: (context) => const RoundsDialog(),
     );
 
-    debugPrint('Rounds entered: $rounds');
-
-    if (rounds == null) {
-      debugPrint('Rounds dialog cancelled');
-      return;
-    }
+    if (rounds == null) return;
 
     final now = DateTime.now();
     final createdAt = DateTime(
@@ -161,18 +217,9 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
       createdAt: createdAt,
     );
 
-    debugPrint('Creating trip record: ${record.distanceLabel}, ${record.rounds} rounds, ${record.totalBaht} baht');
-    debugPrint('Selected date: $_selectedDate');
-    debugPrint('Created at: $createdAt');
-    debugPrint('Database initialized: ${appDatabase.isInitialized}');
-
     try {
       await appDatabase.insertTrip(record);
-      debugPrint('Trip inserted successfully');
     } catch (e) {
-      debugPrint('=== Trip Insert Failed ===');
-      debugPrint('Error: $e');
-      debugPrint('Error type: ${e.runtimeType}');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -190,6 +237,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
       initialDate: _selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      locale: const Locale('th', 'TH'),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -450,8 +498,8 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                   crossAxisCount: 2,
                   childAspectRatio:
                       MediaQuery.sizeOf(context).width > 600
-                      ? 1.4
-                      : (isSmallScreen ? 1.4 : 1.3),
+                      ? 1.3
+                      : (isSmallScreen ? 1.25 : 1.2),
                   crossAxisSpacing: isSmallScreen ? 6 : 8,
                   mainAxisSpacing: isSmallScreen ? 6 : 8,
                 ),
@@ -459,7 +507,8 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                   final option = _options[index];
                   return _DistanceActionCard(
                     option: option,
-                    onTap: () => _chooseDistance(option),
+                    onTap: () => _logInstantTrip(option),
+                    onEdit: () => _logCustomTrip(option),
                   );
                 }, childCount: _options.length),
               ),
@@ -618,10 +667,27 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
 }
 
 class _DistanceActionCard extends StatelessWidget {
-  const _DistanceActionCard({required this.option, required this.onTap});
+  const _DistanceActionCard({
+    required this.option,
+    required this.onTap,
+    required this.onEdit,
+  });
 
   final DistanceOption option;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
+
+  IconData _getDistanceIcon(String label) {
+    if (label.contains('0-300')) {
+      return Icons.directions_walk;
+    } else if (label.contains('301-500')) {
+      return Icons.motorcycle;
+    } else if (label.contains('501')) {
+      return Icons.directions_car;
+    } else {
+      return Icons.local_shipping;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -632,64 +698,94 @@ class _DistanceActionCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
-                width: isSmallScreen ? 3 : 4,
-              ),
-            ),
-          ),
-          padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 6 : 8,
-            vertical: isSmallScreen ? 8 : 10,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Center(
-                  child: Text(
-                    option.label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: (isSmallScreen 
-                        ? Theme.of(context).textTheme.bodySmall 
-                        : Theme.of(context).textTheme.bodyMedium)
-                        ?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+      child: Stack(
+        children: [
+          InkWell(
+            onTap: onTap,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: isSmallScreen ? 3 : 4,
                   ),
                 ),
               ),
-              SizedBox(height: isSmallScreen ? 2 : 4),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isSmallScreen ? 10 : 12,
-                  vertical: isSmallScreen ? 3 : 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${option.rateBaht} ฿',
-                  style: (isSmallScreen 
-                      ? Theme.of(context).textTheme.bodyMedium 
-                      : Theme.of(context).textTheme.titleSmall)
-                      ?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                ),
+              padding: EdgeInsets.only(
+                left: isSmallScreen ? 4 : 6,
+                right: isSmallScreen ? 4 : 6,
+                top: isSmallScreen ? 12 : 16,
+                bottom: isSmallScreen ? 6 : 8,
               ),
-            ],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _getDistanceIcon(option.label),
+                    size: isSmallScreen ? 20 : 26,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 4),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        option.label,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: (isSmallScreen 
+                            ? Theme.of(context).textTheme.bodySmall 
+                            : Theme.of(context).textTheme.bodyMedium)
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: isSmallScreen ? 2 : 4),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 10 : 12,
+                      vertical: isSmallScreen ? 3 : 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${option.rateBaht} ฿',
+                      style: (isSmallScreen 
+                          ? Theme.of(context).textTheme.bodyMedium 
+                          : Theme.of(context).textTheme.titleSmall)
+                          ?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+          Positioned(
+            top: 2,
+            right: 2,
+            child: IconButton(
+              icon: Icon(
+                Icons.edit_note,
+                size: isSmallScreen ? 18 : 22,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              onPressed: onEdit,
+              tooltip: 'ระบุจำนวนรอบ',
+              style: IconButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: isSmallScreen ? const Size(28, 28) : const Size(36, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -737,14 +833,16 @@ class _SummaryPanel extends StatelessWidget {
     final isCompact = screenWidth < 600;
 
     final actionButtons = [
-      FilledButton.icon(
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.white.withOpacity(0.2),
-          foregroundColor: Colors.white,
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.redAccent.shade100,
+          side: BorderSide(color: Colors.redAccent.shade100, width: 1.5),
           padding: isSmallScreen 
               ? const EdgeInsets.symmetric(vertical: 8, horizontal: 10)
               : null,
-          textStyle: isSmallScreen ? const TextStyle(fontSize: 12) : null,
+          textStyle: isSmallScreen 
+              ? const TextStyle(fontSize: 12, fontWeight: FontWeight.bold) 
+              : const TextStyle(fontWeight: FontWeight.bold),
         ),
         onPressed: canClear ? onClear : null,
         icon: Icon(

@@ -56,7 +56,9 @@ void main() {
       expect(find.byType(FlutterMap), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget);
       expect(find.text('ค้นหาชื่อลูกค้า...'), findsOneWidget);
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byIcon(Icons.my_location), findsOneWidget);
+      expect(find.byIcon(Icons.add), findsOneWidget);
+      expect(find.byIcon(Icons.remove), findsOneWidget);
     });
 
     testWidgets('searches for customer and centers map', (tester) async {

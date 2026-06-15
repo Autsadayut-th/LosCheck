@@ -42,6 +42,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   String _phoneInput = '';
   String _debouncedPhoneInput = '';
   String _debouncedPhoneFilter = '';
+  CustomerSortMethod _sortMethod = CustomerSortMethod.name;
 
   String get _activePhoneFilter {
     final manualFilter = _debouncedPhoneFilter.trim();
@@ -53,19 +54,38 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
 
   List<CustomerRecord> _getFilteredRecords(List<CustomerRecord> customers) {
     final query = _normalizePhone(_activePhoneFilter);
-    if (query.isEmpty) {
-      return customers;
-    }
+    final filtered = query.isEmpty
+        ? customers.toList()
+        : customers.where((record) {
+            return _normalizePhone(record.phone).contains(query);
+          }).toList();
 
-    return customers.where((record) {
-      return _normalizePhone(record.phone).contains(query);
-    }).toList();
+    switch (_sortMethod) {
+      case CustomerSortMethod.name:
+        filtered.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case CustomerSortMethod.dateAdded:
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case CustomerSortMethod.coordinateStatus:
+        filtered.sort((a, b) {
+          final aHasCoords = a.latitude != null && a.longitude != null;
+          final bHasCoords = b.latitude != null && b.longitude != null;
+          if (!aHasCoords && bHasCoords) return -1;
+          if (aHasCoords && !bHasCoords) return 1;
+          return a.name.compareTo(b.name);
+        });
+        break;
+    }
+    return filtered;
   }
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this)..addListener(() {
+      if (mounted) setState(() {});
+    });
     _phoneController.addListener(_onPhoneInputChanged);
     _phoneFilterController.addListener(_onPhoneFilterChanged);
     _mapLinkController.addListener(_onMapLinkChanged);
@@ -75,6 +95,9 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   void dispose() {
     _tabController.dispose();
     _filterDebounce?.cancel();
+    _phoneController.removeListener(_onPhoneInputChanged);
+    _phoneFilterController.removeListener(_onPhoneFilterChanged);
+    _mapLinkController.removeListener(_onMapLinkChanged);
     _phoneController.dispose();
     _nameController.dispose();
     _addressController.dispose();
@@ -397,15 +420,20 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   }
 
   Future<void> _openMap(CustomerRecord record) async {
-    final String query;
+    final Uri uri;
     if (record.latitude != null && record.longitude != null) {
-      query = '${record.latitude},${record.longitude}';
+      // Use Directions mode when coordinates are available
+      uri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1'
+        '&destination=${record.latitude},${record.longitude}'
+        '&travelmode=driving',
+      );
     } else {
-      query = Uri.encodeComponent(record.address);
+      // Fallback to Search mode when only address is available
+      uri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(record.address)}',
+      );
     }
-    final uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$query',
-    );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
@@ -426,10 +454,20 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              kIsWeb
-                  ? Image.network(record.imageUrl!)
-                  : Image.file(io.File(record.imageUrl!)),
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: kIsWeb
+                      ? Image.network(record.imageUrl!, fit: BoxFit.contain)
+                      : Image.file(
+                          io.File(record.imageUrl!),
+                          fit: BoxFit.contain,
+                          cacheWidth: 800,
+                        ),
+                ),
+              ),
               OverflowBar(
+                alignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -458,12 +496,15 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile == null) return;
 
+    // Bug fix: preserve latitude and longitude when updating image
     final updated = CustomerRecord(
       phone: record.phone,
       name: record.name,
       address: record.address,
       createdAt: record.createdAt,
       imageUrl: pickedFile.path,
+      latitude: record.latitude,
+      longitude: record.longitude,
     );
 
     // Persist only the affected record.
@@ -497,42 +538,60 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       );
     }
 
-    return SafeArea(
-      child: Column(
-        children: [
-          Material(
-            color: Theme.of(context).colorScheme.surface,
-            elevation: 1,
-            child: TabBar(
-              controller: _tabController,
-              labelColor: Theme.of(context).colorScheme.primary,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: Theme.of(context).colorScheme.primary,
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-              tabs: const [
-                Tab(
-                  icon: Icon(Icons.search),
-                  text: 'รายชื่อลูกค้า',
-                ),
-                Tab(
-                  icon: Icon(Icons.person_add),
-                  text: 'เพิ่ม/แก้ไขลูกค้า',
-                ),
-              ],
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            Material(
+              color: Theme.of(context).colorScheme.surface,
+              elevation: 1,
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Theme.of(context).colorScheme.primary,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: Theme.of(context).colorScheme.primary,
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                tabs: const [
+                  Tab(
+                    icon: Icon(Icons.search),
+                    text: 'รายชื่อลูกค้า',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.person_add),
+                    text: 'เพิ่ม/แก้ไขลูกค้า',
+                  ),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildSearchTab(context, customers, filteredRecords, activePhoneFilter),
-                _buildFormTab(context, appState),
-              ],
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildSearchTab(context, customers, filteredRecords, activePhoneFilter),
+                  _buildFormTab(context, appState),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton(
+              key: const Key('addCustomerFab'),
+              onPressed: () {
+                _phoneController.clear();
+                _nameController.clear();
+                _addressController.clear();
+                _latitudeController.clear();
+                _longitudeController.clear();
+                _mapLinkController.clear();
+                _phoneInput = '';
+                _tabController.animateTo(1);
+              },
+              child: const Icon(Icons.person_add),
+            )
+          : null,
     );
   }
 
@@ -560,6 +619,47 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
+                    ),
+                    PopupMenuButton<CustomerSortMethod>(
+                      icon: const Icon(Icons.sort),
+                      tooltip: 'จัดเรียงข้อมูล',
+                      onSelected: (CustomerSortMethod method) {
+                        setState(() {
+                          _sortMethod = method;
+                        });
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: CustomerSortMethod.name,
+                          child: Row(
+                            children: [
+                              Icon(Icons.sort_by_alpha, color: _sortMethod == CustomerSortMethod.name ? Theme.of(context).colorScheme.primary : null),
+                              const SizedBox(width: 8),
+                              const Text('เรียงตามชื่อ'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: CustomerSortMethod.dateAdded,
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today, color: _sortMethod == CustomerSortMethod.dateAdded ? Theme.of(context).colorScheme.primary : null),
+                              const SizedBox(width: 8),
+                              const Text('เรียงตามวันที่เพิ่ม'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: CustomerSortMethod.coordinateStatus,
+                          child: Row(
+                            children: [
+                              Icon(Icons.location_off, color: _sortMethod == CustomerSortMethod.coordinateStatus ? Theme.of(context).colorScheme.primary : null),
+                              const SizedBox(width: 8),
+                              const Text('เรียงตามไม่มีพิกัดก่อน'),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     IconButton(
                       tooltip: 'ดูแผนที่ลูกค้า',
@@ -1073,7 +1173,10 @@ class _CustomerRecordTile extends StatelessWidget {
         radius: 24,
         backgroundImage: kIsWeb
             ? NetworkImage(record.imageUrl!)
-            : FileImage(io.File(record.imageUrl!)) as ImageProvider,
+            : ResizeImage(
+                FileImage(io.File(record.imageUrl!)),
+                width: 120,
+              ) as ImageProvider,
       );
     } else {
       leadingWidget = CircleAvatar(
@@ -1110,11 +1213,34 @@ class _CustomerRecordTile extends StatelessWidget {
             vertical: 8,
           ),
           leading: leadingWidget,
-          title: Text(
-            record.name,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          title: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            children: [
+              Text(
+                record.name,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              if (record.latitude == null || record.longitude == null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    border: Border.all(color: Colors.orange.shade300),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'ไม่มีพิกัด',
+                    style: TextStyle(
+                      color: Colors.orange.shade900,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
           ),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -1246,3 +1372,9 @@ class _CustomerRecordTile extends StatelessWidget {
 }
 
 enum _CustomerAction { image, edit, delete }
+
+enum CustomerSortMethod {
+  name,
+  dateAdded,
+  coordinateStatus,
+}

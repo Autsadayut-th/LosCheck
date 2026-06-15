@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:url_launcher/url_launcher.dart';
 
+import '../core/design_tokens.dart';
+import '../core/theme_extensions.dart';
+import '../main.dart';
 import '../services/backup_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 
@@ -23,24 +28,14 @@ class _SettingsPageState extends State<SettingsPage> {
       await Clipboard.setData(ClipboardData(text: jsonData));
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'ข้อมูลสำรองแล้ว ($filename) - คัดลอกไปยังคลิปบอร์ดแล้ว',
-          ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 4),
-        ),
+      showSuccessSnackbar(
+        context,
+        message: 'ข้อมูลสำรองแล้ว ($filename) - คัดลอกไปยังคลิปบอร์ดแล้ว',
+        duration: const Duration(seconds: 4),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showErrorSnackbar(context, message: 'เกิดข้อผิดพลาด: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -53,16 +48,15 @@ class _SettingsPageState extends State<SettingsPage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text('นำเข้าข้อมูลสำรอง'),
-        content: SingleChildScrollView(
-          child: TextField(
-            controller: controller,
-            minLines: 10,
-            maxLines: 20,
-            decoration: const InputDecoration(
-              hintText: 'วางข้อมูล JSON ที่คัดลอก...',
-              border: OutlineInputBorder(),
-            ),
+        content: TextField(
+          controller: controller,
+          minLines: 3,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            hintText: 'วางข้อมูล JSON ที่คัดลอก...',
+            border: OutlineInputBorder(),
           ),
         ),
         actions: [
@@ -84,22 +78,10 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       await BackupService.importFromJson(result);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('นำเข้าข้อมูลสำรองสำเร็จแล้ว'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showSuccessSnackbar(context, message: 'นำเข้าข้อมูลสำรองสำเร็จแล้ว');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showErrorSnackbar(context, message: 'เกิดข้อผิดพลาด: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -112,16 +94,15 @@ class _SettingsPageState extends State<SettingsPage> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text('ผสานข้อมูลสำรอง'),
-        content: SingleChildScrollView(
-          child: TextField(
-            controller: controller,
-            minLines: 10,
-            maxLines: 20,
-            decoration: const InputDecoration(
-              hintText: 'วางข้อมูล JSON ที่คัดลอก...',
-              border: OutlineInputBorder(),
-            ),
+        content: TextField(
+          controller: controller,
+          minLines: 3,
+          maxLines: 10,
+          decoration: const InputDecoration(
+            hintText: 'วางข้อมูล JSON ที่คัดลอก...',
+            border: OutlineInputBorder(),
           ),
         ),
         actions: [
@@ -143,22 +124,10 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       await BackupService.mergeFromJson(result);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ผสานข้อมูลสำรองสำเร็จแล้ว'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showSuccessSnackbar(context, message: 'ผสานข้อมูลสำรองสำเร็จแล้ว');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showErrorSnackbar(context, message: 'เกิดข้อผิดพลาด: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -176,58 +145,157 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       await BackupService.clearAllData();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ลบข้อมูลทั้งหมดแล้ว'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showSuccessSnackbar(context, message: 'ลบข้อมูลทั้งหมดแล้ว');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showErrorSnackbar(context, message: 'เกิดข้อผิดพลาด: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
+  Future<void> _downloadApk() async {
+    final baseUri = Uri.base;
+    final pathSegments = List<String>.from(baseUri.pathSegments);
+    if (pathSegments.isNotEmpty && (pathSegments.last.contains('.') || pathSegments.last.isEmpty)) {
+      pathSegments.removeLast();
+    }
+    pathSegments.add('app-release.apk');
+    final apkUri = Uri(
+      scheme: baseUri.scheme,
+      host: baseUri.host,
+      port: baseUri.port,
+      pathSegments: pathSegments,
+    );
+
+    try {
+      if (await canLaunchUrl(apkUri)) {
+        await launchUrl(apkUri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Cannot launch';
+      }
+    } catch (_) {
+      if (!mounted) return;
+      showErrorSnackbar(context, message: 'ไม่สามารถดาวน์โหลดไฟล์ APK ได้');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 380;
+    final isSmallScreen = context.screenWidth < 380;
+    final themeState = MyApp.of(context);
+    final currentTheme = themeState?.themeMode ?? ThemeMode.system;
 
     return SafeArea(
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: DesignTokens.containerMaxWidth),
           child: Padding(
-            padding: EdgeInsets.all(isSmallScreen ? 12 : 20),
+            padding: isSmallScreen ? DesignTokens.paddingS : DesignTokens.paddingM,
             child: ListView(
               children: [
                 Text(
                   'การตั้งค่า',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  style: context.textStyles.headingPrimary.copyWith(
+                    fontWeight: DesignTokens.fontWeightBold,
                     fontSize: isSmallScreen ? 24 : null,
                   ),
                 ),
-                SizedBox(height: isSmallScreen ? 16 : 24),
+                SizedBox(height: isSmallScreen ? DesignTokens.spacingM : DesignTokens.spacingL),
                 Text(
-                  'การสำรองข้อมูล',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  'การแสดงผล',
+                  style: context.textStyles.cardTitle.copyWith(
+                    fontWeight: DesignTokens.fontWeightBold,
                     fontSize: isSmallScreen ? 18 : null,
                   ),
                 ),
-                SizedBox(height: isSmallScreen ? 10 : 16),
+                SizedBox(height: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingM),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: DesignTokens.borderRadiusMd,
+                    side: BorderSide(
+                      color: context.colors.borderColor,
+                      width: 1,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: isSmallScreen ? DesignTokens.paddingS : DesignTokens.paddingM,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.palette_outlined,
+                          color: context.colors.primary,
+                          size: isSmallScreen ? DesignTokens.iconSizeMd : DesignTokens.iconSizeLg,
+                        ),
+                        SizedBox(width: isSmallScreen ? DesignTokens.spacingS : DesignTokens.spacingM),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'ธีมแอปพลิเคชัน',
+                                style: context.textStyles.titleMedium?.copyWith(
+                                  color: context.colors.primary,
+                                  fontWeight: DesignTokens.fontWeightBold,
+                                  fontSize: isSmallScreen ? 14 : null,
+                                ),
+                              ),
+                              const SizedBox(height: DesignTokens.spacingXs),
+                              Text(
+                                'เลือกโหมดการแสดงผลของแอป',
+                                style: context.textStyles.bodySmallText.copyWith(
+                                  color: context.colors.onSurfaceVariant,
+                                  fontSize: isSmallScreen ? 11 : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: isSmallScreen ? DesignTokens.spacingS : DesignTokens.spacingM),
+                        DropdownButton<ThemeMode>(
+                          key: const Key('theme_mode_dropdown'),
+                          value: currentTheme,
+                          underline: const SizedBox(),
+                          icon: const Icon(Icons.arrow_drop_down),
+                          borderRadius: DesignTokens.borderRadiusMd,
+                          style: context.textStyles.bodyStandard.copyWith(
+                            color: context.colors.onSurface,
+                            fontWeight: DesignTokens.fontWeightSemibold,
+                          ),
+                          onChanged: (ThemeMode? value) {
+                            if (value != null) {
+                              themeState?.setThemeMode(value);
+                            }
+                          },
+                          items: const [
+                            DropdownMenuItem(
+                              value: ThemeMode.system,
+                              child: Text('ตามระบบ'),
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.light,
+                              child: Text('สว่าง'),
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.dark,
+                              child: Text('มืด'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: isSmallScreen ? DesignTokens.spacingL : DesignTokens.spacingXl),
+                Text(
+                  'การสำรองข้อมูล',
+                  style: context.textStyles.cardTitle.copyWith(
+                    fontWeight: DesignTokens.fontWeightBold,
+                    fontSize: isSmallScreen ? 18 : null,
+                  ),
+                ),
+                SizedBox(height: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingM),
                 _BackupCard(
                   title: 'ส่งออกข้อมูล',
                   description:
@@ -235,7 +303,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   icon: Icons.download,
                   onPressed: _isProcessing ? null : _exportBackup,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DesignTokens.spacingS),
                 _BackupCard(
                   title: 'นำเข้าข้อมูล',
                   description:
@@ -244,7 +312,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   onPressed: _isProcessing ? null : _importBackup,
                   dangerous: true,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: DesignTokens.spacingS),
                 _BackupCard(
                   title: 'ผสานข้อมูล',
                   description:
@@ -252,17 +320,15 @@ class _SettingsPageState extends State<SettingsPage> {
                   icon: Icons.merge,
                   onPressed: _isProcessing ? null : _mergeBackup,
                 ),
-                SizedBox(height: isSmallScreen ? 24 : 32),
+                SizedBox(height: isSmallScreen ? DesignTokens.spacingL : DesignTokens.spacingXl),
                 Text(
                   'ข้อมูล',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  style: context.textStyles.cardTitle.copyWith(
+                    fontWeight: DesignTokens.fontWeightBold,
                     fontSize: isSmallScreen ? 18 : null,
                   ),
                 ),
-                SizedBox(height: isSmallScreen ? 10 : 16),
+                SizedBox(height: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingM),
                 _BackupCard(
                   title: 'ลบข้อมูลทั้งหมด',
                   description:
@@ -271,7 +337,25 @@ class _SettingsPageState extends State<SettingsPage> {
                   onPressed: _isProcessing ? null : _clearAllData,
                   dangerous: true,
                 ),
-                const SizedBox(height: 24),
+                if (kIsWeb) ...[
+                  SizedBox(height: isSmallScreen ? DesignTokens.spacingL : DesignTokens.spacingXl),
+                  Text(
+                    'แอปพลิเคชันมือถือ',
+                    style: context.textStyles.cardTitle.copyWith(
+                      fontWeight: DesignTokens.fontWeightBold,
+                      fontSize: isSmallScreen ? 18 : null,
+                    ),
+                  ),
+                  SizedBox(height: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingM),
+                  _BackupCard(
+                    title: 'ดาวน์โหลด Android APK',
+                    description:
+                        'ดาวน์โหลดและติดตั้งแอปเนทีฟบนอุปกรณ์ Android เพื่อความลื่นไหลสูงสุด',
+                    icon: Icons.android_outlined,
+                    onPressed: _downloadApk,
+                  ),
+                ],
+                const SizedBox(height: DesignTokens.spacingL),
                 if (_isProcessing)
                   const Center(child: CircularProgressIndicator()),
               ],
@@ -300,52 +384,55 @@ class _BackupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 380;
+    final isSmallScreen = context.screenWidth < 380;
+    final isDarkMode = context.isDarkMode;
 
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = dangerous
-        ? Theme.of(context).colorScheme.errorContainer.withOpacity(isDarkMode ? 0.2 : 0.15)
+        ? context.colors.errorContainer.withOpacity(isDarkMode ? 0.2 : 0.15)
         : null;
     final foregroundColor = dangerous
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.primary;
+        ? context.colors.error
+        : context.colors.primary;
 
     return Card(
       elevation: 0,
       color: backgroundColor,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: DesignTokens.borderRadiusMd,
         side: BorderSide(
           color: dangerous
-              ? Theme.of(context).colorScheme.error.withOpacity(0.4)
-              : Colors.grey.shade300,
+              ? context.colors.error.withOpacity(0.4)
+              : context.colors.borderColor,
           width: 1,
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+        padding: isSmallScreen ? DesignTokens.paddingS : DesignTokens.paddingM,
         child: Row(
           children: [
-            Icon(icon, color: foregroundColor, size: isSmallScreen ? 24 : 32),
-            SizedBox(width: isSmallScreen ? 12 : 16),
+            Icon(
+              icon,
+              color: foregroundColor,
+              size: isSmallScreen ? DesignTokens.iconSizeMd : DesignTokens.iconSizeLg,
+            ),
+            SizedBox(width: isSmallScreen ? DesignTokens.spacingS : DesignTokens.spacingM),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: context.textStyles.titleMedium?.copyWith(
                       color: foregroundColor,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: DesignTokens.fontWeightBold,
                       fontSize: isSmallScreen ? 14 : null,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: DesignTokens.spacingXs),
                   Text(
                     description,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    style: context.textStyles.bodySmallText.copyWith(
+                      color: context.colors.onSurfaceVariant,
                       fontSize: isSmallScreen ? 11 : null,
                     ),
                     maxLines: 2,
@@ -354,7 +441,7 @@ class _BackupCard extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(width: isSmallScreen ? 8 : 12),
+            SizedBox(width: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingS),
             isSmallScreen
                 ? IconButton(
                     onPressed: onPressed,

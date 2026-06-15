@@ -80,7 +80,15 @@ void main() {
       await pumpApp(tester);
 
       // Add a trip record
-      await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
+      final cardFinder = find.ancestor(
+        of: find.text('ระยะทาง 0-300 เมตร'),
+        matching: find.byType(Card),
+      );
+      final editButtonFinder = find.descendant(
+        of: cardFinder,
+        matching: find.byIcon(Icons.edit_note),
+      );
+      await tester.tap(editButtonFinder);
       await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '5');
       await tester.tap(find.text('ตกลง'));
@@ -183,7 +191,15 @@ void main() {
       await pumpApp(tester);
 
       // Add trip record
-      await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
+      final cardFinder = find.ancestor(
+        of: find.text('ระยะทาง 0-300 เมตร'),
+        matching: find.byType(Card),
+      );
+      final editButtonFinder = find.descendant(
+        of: cardFinder,
+        matching: find.byIcon(Icons.edit_note),
+      );
+      await tester.tap(editButtonFinder);
       await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));
@@ -207,18 +223,24 @@ void main() {
       await tester.pumpWidget(const MyApp());
       await pumpApp(tester);
 
-      // Tap theme button
-      await tester.tap(find.byIcon(Icons.brightness_auto));
+      // Tap theme button (now navigate to Settings and use dropdown)
+      await tester.tap(find.text('การตั้งค่า'));
       await pumpApp(tester);
 
-      // Icon should change
-      expect(find.byIcon(Icons.light_mode), findsOneWidget);
+      final dropdownFinder = find.byKey(const Key('theme_mode_dropdown'));
+      expect(dropdownFinder, findsOneWidget);
 
-      // Tap again
-      await tester.tap(find.byIcon(Icons.light_mode));
+      final dropdown = tester.widget<DropdownButton<ThemeMode>>(dropdownFinder);
+      dropdown.onChanged!(ThemeMode.light);
       await pumpApp(tester);
 
-      expect(find.byIcon(Icons.dark_mode), findsOneWidget);
+      final myApp = tester.state<MyAppState>(find.byType(MyApp));
+      expect(myApp.themeMode, ThemeMode.light);
+
+      dropdown.onChanged!(ThemeMode.dark);
+      await pumpApp(tester);
+
+      expect(myApp.themeMode, ThemeMode.dark);
       await disposeAppTree(tester);
     });
 
@@ -230,13 +252,17 @@ void main() {
       await pumpApp(tester);
 
       // Add multiple records
-      await tester.tap(find.text('ระยะทาง 0-300 เมตร'));
+      final card0 = find.ancestor(of: find.text('ระยะทาง 0-300 เมตร'), matching: find.byType(Card));
+      final edit0 = find.descendant(of: card0, matching: find.byIcon(Icons.edit_note));
+      await tester.tap(edit0);
       await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '2');
       await tester.tap(find.text('ตกลง'));
       await pumpApp(tester);
 
-      await tester.tap(find.text('ระยะทาง 301-500 เมตร'));
+      final card1 = find.ancestor(of: find.text('ระยะทาง 301-500 เมตร'), matching: find.byType(Card));
+      final edit1 = find.descendant(of: card1, matching: find.byIcon(Icons.edit_note));
+      await tester.tap(edit1);
       await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '3');
       await tester.tap(find.text('ตกลง'));

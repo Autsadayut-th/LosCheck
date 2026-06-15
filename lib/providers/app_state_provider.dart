@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/customer_record.dart';
 import '../models/trip_record.dart';
 import '../database/hive_database.dart';
@@ -10,6 +11,9 @@ class AppStateProvider extends ChangeNotifier {
   bool _isLoading = true;
   String? _error;
 
+  int _completedDeliveryPoints = 0;
+  double _completedRouteDistance = 0.0;
+
   StreamSubscription<List<CustomerRecord>>? _customerSubscription;
   StreamSubscription<List<TripRecord>>? _tripSubscription;
 
@@ -18,6 +22,13 @@ class AppStateProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  int get completedDeliveryPoints => _completedDeliveryPoints;
+  double get completedRouteDistance => _completedRouteDistance;
+
+  static const String _prefKeyPoints = 'completed_delivery_points';
+  static const String _prefKeyDistance = 'completed_route_distance';
+  static const String _prefKeyDate = 'navigation_stats_date';
+
   AppStateProvider() {
     _init();
   }
@@ -25,6 +36,7 @@ class AppStateProvider extends ChangeNotifier {
   void _init() {
     _isLoading = true;
     _error = null;
+    loadNavigationStats();
 
     // Listen to customers watch stream
     _customerSubscription = appDatabase.watchAllCustomers().listen(
@@ -60,6 +72,59 @@ class AppStateProvider extends ChangeNotifier {
       _isLoading = false;
     }
     notifyListeners();
+  }
+
+  Future<void> loadNavigationStats() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final todayStr = _getTodayKey();
+      final savedDate = prefs.getString(_prefKeyDate);
+      
+      if (savedDate != todayStr) {
+        // Reset daily stats
+        _completedDeliveryPoints = 0;
+        _completedRouteDistance = 0.0;
+        await prefs.setString(_prefKeyDate, todayStr);
+        await prefs.setInt(_prefKeyPoints, 0);
+        await prefs.setDouble(_prefKeyDistance, 0.0);
+      } else {
+        _completedDeliveryPoints = prefs.getInt(_prefKeyPoints) ?? 0;
+        _completedRouteDistance = prefs.getDouble(_prefKeyDistance) ?? 0.0;
+      }
+      notifyListeners();
+    } catch (_) {
+      // SharedPreferences failures fall back to default (0)
+    }
+  }
+
+  Future<void> recordRouteCompletion(int points, double distance) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final todayStr = _getTodayKey();
+      final savedDate = prefs.getString(_prefKeyDate);
+
+      if (savedDate != todayStr) {
+        _completedDeliveryPoints = points;
+        _completedRouteDistance = distance;
+        await prefs.setString(_prefKeyDate, todayStr);
+      } else {
+        _completedDeliveryPoints += points;
+        _completedRouteDistance += distance;
+      }
+
+      await prefs.setInt(_prefKeyPoints, _completedDeliveryPoints);
+      await prefs.setDouble(_prefKeyDistance, _completedRouteDistance);
+      notifyListeners();
+    } catch (_) {
+      _completedDeliveryPoints += points;
+      _completedRouteDistance += distance;
+      notifyListeners();
+    }
+  }
+
+  String _getTodayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
   @override

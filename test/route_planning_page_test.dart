@@ -45,9 +45,10 @@ void main() {
       await pumpApp(tester);
 
       expect(find.text('วางแผนเส้นทางนำทาง'), findsOneWidget);
-      expect(find.text('จุดเริ่มต้นเดินทาง (ตำแหน่งของคุณ)'), findsOneWidget);
+      expect(find.text('Latitude'), findsOneWidget);
+      expect(find.text('Longitude'), findsOneWidget);
       expect(find.text('เลือกลูกค้าจัดส่ง'), findsOneWidget);
-      expect(find.text('เริ่มนำทาง (0 จุด)'), findsOneWidget);
+      expect(find.textContaining('เริ่มนำทาง (0 จุด'), findsOneWidget);
     });
 
     testWidgets('displays customers list and allows selection and starting navigation', (tester) async {
@@ -89,10 +90,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify "เริ่มนำทาง (2 จุด)" button is enabled
-      expect(find.text('เริ่มนำทาง (2 จุด)'), findsOneWidget);
+      expect(find.textContaining('เริ่มนำทาง (2 จุด'), findsOneWidget);
 
       // Start navigation
-      await tester.tap(find.text('เริ่มนำทาง (2 จุด)'));
+      await tester.tap(find.textContaining('เริ่มนำทาง (2 จุด'));
       await tester.pumpAndSettle();
 
       // Verify navigation screen is loaded

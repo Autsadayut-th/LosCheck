@@ -22,27 +22,8 @@ class BackupService {
     final data = {
       'version': _version,
       'exportedAt': DateTime.now().toIso8601String(),
-      'customers': customers
-          .map(
-            (c) => {
-              'phone': c.phone,
-              'name': c.name,
-              'address': c.address,
-              'createdAt': c.createdAt.toIso8601String(),
-              if (c.imageUrl != null) 'imageUrl': c.imageUrl!,
-            },
-          )
-          .toList(),
-      'trips': trips
-          .map(
-            (t) => {
-              'distanceLabel': t.distanceLabel,
-              'rateBaht': t.rateBaht,
-              'rounds': t.rounds,
-              'createdAt': t.createdAt.toIso8601String(),
-            },
-          )
-          .toList(),
+      'customers': customers.map((c) => c.toJson()).toList(),
+      'trips': trips.map((t) => t.toJson()).toList(),
     };
 
     // Serialize JSON on a background isolate
@@ -77,13 +58,7 @@ class BackupService {
       if (customersList != null) {
         final List<CustomerRecord> customers = [];
         for (final customerData in customersList) {
-          customers.add(CustomerRecord(
-            phone: customerData['phone'] as String,
-            name: customerData['name'] as String,
-            address: customerData['address'] as String,
-            createdAt: DateTime.parse(customerData['createdAt'] as String),
-            imageUrl: customerData['imageUrl'] as String?,
-          ));
+          customers.add(CustomerRecord.fromJson(Map<String, dynamic>.from(customerData as Map)));
         }
         // Write all customers to Hive in a single bulk transaction
         await appDatabase.batchInsertCustomers(customers);
@@ -94,12 +69,7 @@ class BackupService {
       if (tripsList != null) {
         final List<TripRecord> trips = [];
         for (final tripData in tripsList) {
-          trips.add(TripRecord(
-            distanceLabel: tripData['distanceLabel'] as String,
-            rateBaht: tripData['rateBaht'] as int,
-            rounds: tripData['rounds'] as int,
-            createdAt: DateTime.parse(tripData['createdAt'] as String),
-          ));
+          trips.add(TripRecord.fromJson(Map<String, dynamic>.from(tripData as Map)));
         }
         // Write all trips to Hive in a single bulk transaction
         await appDatabase.batchInsertTrips(trips);
@@ -127,13 +97,7 @@ class BackupService {
       if (customersList != null) {
         final List<CustomerRecord> customers = [];
         for (final customerData in customersList) {
-          customers.add(CustomerRecord(
-            phone: customerData['phone'] as String,
-            name: customerData['name'] as String,
-            address: customerData['address'] as String,
-            createdAt: DateTime.parse(customerData['createdAt'] as String),
-            imageUrl: customerData['imageUrl'] as String?,
-          ));
+          customers.add(CustomerRecord.fromJson(Map<String, dynamic>.from(customerData as Map)));
         }
         await appDatabase.batchInsertCustomers(customers);
       }
@@ -143,12 +107,7 @@ class BackupService {
       if (tripsList != null) {
         final List<TripRecord> trips = [];
         for (final tripData in tripsList) {
-          trips.add(TripRecord(
-            distanceLabel: tripData['distanceLabel'] as String,
-            rateBaht: tripData['rateBaht'] as int,
-            rounds: tripData['rounds'] as int,
-            createdAt: DateTime.parse(tripData['createdAt'] as String),
-          ));
+          trips.add(TripRecord.fromJson(Map<String, dynamic>.from(tripData as Map)));
         }
         await appDatabase.batchInsertTrips(trips);
       }

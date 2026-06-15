@@ -9,6 +9,7 @@ import '../widgets/shimmer_loading.dart';
 import '../core/design_tokens.dart';
 import '../core/theme_extensions.dart';
 import 'map_page.dart';
+import 'route_planning_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -46,6 +47,8 @@ class DashboardPage extends StatelessWidget {
               return _DashboardContent(
                 tripRecords: appState.trips,
                 customerRecords: appState.customers,
+                completedDeliveryPoints: appState.completedDeliveryPoints,
+                completedRouteDistance: appState.completedRouteDistance,
               );
             },
           ),
@@ -94,10 +97,14 @@ class _DashboardContent extends StatelessWidget {
   const _DashboardContent({
     required this.tripRecords,
     required this.customerRecords,
+    required this.completedDeliveryPoints,
+    required this.completedRouteDistance,
   });
 
   final List<TripRecord> tripRecords;
   final List<CustomerRecord> customerRecords;
+  final int completedDeliveryPoints;
+  final double completedRouteDistance;
 
   int get _totalTripRecords => tripRecords.length;
   int get _totalCustomerRecords => customerRecords.length;
@@ -210,6 +217,43 @@ class _DashboardContent extends StatelessWidget {
           ),
           const SizedBox(height: DesignTokens.spacingM),
           FadeInSlide(
+            delay: const Duration(milliseconds: 220),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    title: 'จุดส่งวันนี้',
+                    value: '$completedDeliveryPoints',
+                    unit: 'จุด',
+                    icon: Icons.pin_drop,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF36D1DC), Color(0xFF5B86E5)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    textColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: DesignTokens.spacingM),
+                Expanded(
+                  child: _StatCard(
+                    title: 'ระยะทางนำทาง',
+                    value: completedRouteDistance.toStringAsFixed(1),
+                    unit: 'กม.',
+                    icon: Icons.navigation_rounded,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00C6FF), Color(0xFF0072FF)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    textColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spacingM),
+          FadeInSlide(
             delay: const Duration(milliseconds: 250),
             child: Card(
               elevation: 3,
@@ -258,6 +302,63 @@ class _DashboardContent extends StatelessWidget {
                       Icon(
                         Icons.chevron_right,
                         color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: DesignTokens.spacingM),
+          FadeInSlide(
+            delay: const Duration(milliseconds: 270),
+            child: Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: DesignTokens.borderRadiusLg),
+              child: InkWell(
+                borderRadius: DesignTokens.borderRadiusLg,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const RoutePlanningPage()),
+                ),
+                child: Padding(
+                  padding: DesignTokens.paddingM,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondaryContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.navigation_rounded,
+                          color: Theme.of(context).colorScheme.onSecondaryContainer,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'วางแผนและนำทาง (Route Planning)',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'จัดคิวส่งของตามถนนจริง, ระยะทางจริง, และเริ่มนำทาง',
+                              style: TextStyle(color: Colors.grey, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).colorScheme.secondary,
                       ),
                     ],
                   ),

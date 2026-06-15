@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'database/hive_database.dart';
 import 'providers/app_state_provider.dart';
@@ -35,13 +37,48 @@ class MyApp extends StatefulWidget {
 class MyAppState extends State<MyApp> {
   ThemeMode _themeMode = ThemeMode.system;
 
+  static const String _themePrefKey = 'theme_mode';
+
   @override
   void initState() {
     super.initState();
+    _loadSavedTheme();
+  }
+
+  Future<void> _loadSavedTheme() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_themePrefKey);
+      if (saved != null && mounted) {
+        setState(() {
+          _themeMode = switch (saved) {
+            'light' => ThemeMode.light,
+            'dark' => ThemeMode.dark,
+            _ => ThemeMode.system,
+          };
+        });
+      }
+    } catch (_) {
+      // Ignore preference errors — fall back to system theme
+    }
+  }
+
+  Future<void> _saveTheme(ThemeMode mode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_themePrefKey, switch (mode) {
+        ThemeMode.light => 'light',
+        ThemeMode.dark => 'dark',
+        ThemeMode.system => 'system',
+      });
+    } catch (_) {
+      // Ignore save errors
+    }
   }
 
   void setThemeMode(ThemeMode mode) {
     setState(() => _themeMode = mode);
+    _saveTheme(mode);
   }
 
   ThemeMode get themeMode => _themeMode;
@@ -54,6 +91,16 @@ class MyAppState extends State<MyApp> {
         title: 'Los Check',
         debugShowCheckedModeBanner: false,
         themeMode: _themeMode,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('th', 'TH'),
+          Locale('en', 'US'),
+        ],
+        locale: const Locale('th', 'TH'),
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.teal,
@@ -134,7 +181,6 @@ class _HomeShellState extends State<HomeShell> {
   static const List<Widget> _pages = [
     DashboardPage(),
     TripFeePage(),
-    RoutePlanningPage(),
     CustomerPage(),
     SettingsPage(),
   ];
@@ -176,14 +222,6 @@ class _HomeShellState extends State<HomeShell> {
     widget.onThemeModeChanged(next);
   }
 
-  IconData get _themeIcon {
-    return switch (widget.themeMode) {
-      ThemeMode.system => Icons.brightness_auto,
-      ThemeMode.light => Icons.light_mode,
-      ThemeMode.dark => Icons.dark_mode,
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!_isDatabaseReady) {
@@ -204,19 +242,19 @@ class _HomeShellState extends State<HomeShell> {
       );
     }
 
+    final appState = Provider.of<AppStateProvider>(context);
+    final today = DateTime.now();
+    final todayRounds = appState.trips
+        .where((t) => t.isSameDay(today))
+        .fold<int>(0, (sum, t) => sum + t.rounds);
+    final totalCustomers = appState.customers.length;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Los Check',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(_themeIcon),
-            tooltip: 'เปลี่ยนธีม',
-            onPressed: _cycleTheme,
-          ),
-        ],
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
@@ -232,28 +270,43 @@ class _HomeShellState extends State<HomeShell> {
             _selectedIndex = index;
           });
         },
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
             label: 'แดชบอร์ด',
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
+            icon: todayRounds > 0
+                ? Badge(
+                    label: Text('$todayRounds'),
+                    child: const Icon(Icons.receipt_long_outlined),
+                  )
+                : const Icon(Icons.receipt_long_outlined),
+            selectedIcon: todayRounds > 0
+                ? Badge(
+                    label: Text('$todayRounds'),
+                    child: const Icon(Icons.receipt_long),
+                  )
+                : const Icon(Icons.receipt_long),
             label: 'ค่ารอบ',
           ),
           NavigationDestination(
-            icon: Icon(Icons.route_outlined),
-            selectedIcon: Icon(Icons.route),
-            label: 'แผนเส้นทาง',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_pin_circle_outlined),
-            selectedIcon: Icon(Icons.person_pin_circle),
+            icon: totalCustomers > 0
+                ? Badge(
+                    label: Text('$totalCustomers'),
+                    child: const Icon(Icons.person_pin_circle_outlined),
+                  )
+                : const Icon(Icons.person_pin_circle_outlined),
+            selectedIcon: totalCustomers > 0
+                ? Badge(
+                    label: Text('$totalCustomers'),
+                    child: const Icon(Icons.person_pin_circle),
+                  )
+                : const Icon(Icons.person_pin_circle),
             label: 'ลูกค้า',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
             label: 'การตั้งค่า',

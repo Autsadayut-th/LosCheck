@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/customer_record.dart';
 import '../providers/app_state_provider.dart';
 import '../services/location_service.dart';
+import 'route_planning_page.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -92,10 +93,7 @@ class _MapPageState extends State<MapPage> {
             width: 48,
             height: 48,
             child: GestureDetector(
-              onTap: () {
-                // Zoom in and center on cluster
-                _mapController.move(clusterCenter, min(_currentZoom + 2.0, 17.0));
-              },
+              onTap: () => _showClusterCustomersBottomSheet(items),
               child: Container(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
@@ -187,6 +185,185 @@ class _MapPageState extends State<MapPage> {
     _showCustomerBottomSheet(customer);
   }
 
+  void _showClusterCustomersBottomSheet(List<CustomerRecord> clusterCustomers) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.only(top: 8, bottom: 16),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Drag indicator
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.group_work_outlined,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'ลูกค้าในกลุ่มนี้ (${clusterCustomers.length} ราย)',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Customer List
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: clusterCustomers.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final customer = clusterCustomers[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                child: Text(
+                                  customer.name.isNotEmpty
+                                      ? customer.name.substring(0, 1).toUpperCase()
+                                      : '?',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      customer.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'โทร: ${customer.phone}',
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      customer.address,
+                                      style: const TextStyle(fontSize: 12),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          // Actions row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  foregroundColor: Theme.of(context).colorScheme.primary,
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _selectCustomer(customer);
+                                },
+                                icon: const Icon(Icons.location_searching, size: 16),
+                                label: const Text('ระบุพิกัด', style: TextStyle(fontSize: 12)),
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  foregroundColor: Theme.of(context).colorScheme.secondary,
+                                ),
+                                onPressed: () => _callCustomer(customer.phone),
+                                icon: const Icon(Icons.phone_outlined, size: 16),
+                                label: const Text('โทร', style: TextStyle(fontSize: 12)),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  elevation: 0,
+                                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                  foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                                ),
+                                onPressed: () => _openInGoogleMaps(customer),
+                                icon: const Icon(Icons.navigation_outlined, size: 16),
+                                label: const Text('นำทาง', style: TextStyle(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showCustomerBottomSheet(CustomerRecord customer) {
     showBottomSheet(
       context: context,
@@ -205,7 +382,7 @@ class _MapPageState extends State<MapPage> {
               ),
             ],
           ),
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -281,7 +458,7 @@ class _MapPageState extends State<MapPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
@@ -309,6 +486,25 @@ class _MapPageState extends State<MapPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
+                // Shortcut to route planning page
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const RoutePlanningPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.route),
+                  label: const Text('วางแผนเส้นทางส่งของ'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ],
             ),
           ),
@@ -327,8 +523,11 @@ class _MapPageState extends State<MapPage> {
 
   Future<void> _openInGoogleMaps(CustomerRecord customer) async {
     if (customer.latitude == null || customer.longitude == null) return;
+    // Use Directions mode for better navigation experience
     final uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=${customer.latitude},${customer.longitude}',
+      'https://www.google.com/maps/dir/?api=1'
+      '&destination=${customer.latitude},${customer.longitude}'
+      '&travelmode=driving',
     );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -372,8 +571,11 @@ class _MapPageState extends State<MapPage> {
       return;
     }
 
+    final queryLower = query.toLowerCase();
     final matched = allCustomers.where((c) {
-      return c.name.toLowerCase().contains(query.toLowerCase()) || c.phone.contains(query);
+      return c.name.toLowerCase().contains(queryLower) ||
+          c.phone.contains(query) ||
+          c.address.toLowerCase().contains(queryLower);
     }).toList();
 
     setState(() {
@@ -417,6 +619,8 @@ class _MapPageState extends State<MapPage> {
                 urlTemplate: tileUrl,
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.loscheck.app',
+                keepBuffer: 1,
+                maxNativeZoom: 18,
               ),
               MarkerLayer(
                 markers: _buildMarkers(customersWithCoords, isDark),
@@ -521,12 +725,55 @@ class _MapPageState extends State<MapPage> {
             ),
           ),
 
+          // Zoom Buttons on Bottom Left
+          Positioned(
+            bottom: 30,
+            left: 20,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'zoom_in_btn',
+                  onPressed: () {
+                    try {
+                      final newZoom = min(_currentZoom + 1.0, 18.0);
+                      _mapController.move(_mapController.camera.center, newZoom);
+                      setState(() {
+                        _currentZoom = newZoom;
+                      });
+                    } catch (_) {}
+                  },
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  child: const Icon(Icons.add),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.small(
+                  heroTag: 'zoom_out_btn',
+                  onPressed: () {
+                    try {
+                      final newZoom = max(_currentZoom - 1.0, 3.0);
+                      _mapController.move(_mapController.camera.center, newZoom);
+                      setState(() {
+                        _currentZoom = newZoom;
+                      });
+                    } catch (_) {}
+                  },
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  child: const Icon(Icons.remove),
+                ),
+              ],
+            ),
+          ),
+
           // Floating Action Button (FAB) for Current Location
           Positioned(
             bottom: _selectedCustomer != null ? 180 : 30, // Shift up if bottom sheet is shown
             right: 20,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
               child: FloatingActionButton(
                 onPressed: _isLocating ? null : _centerOnUser,
                 backgroundColor: Theme.of(context).colorScheme.primary,

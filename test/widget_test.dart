@@ -125,7 +125,15 @@ void main() {
     await tester.tap(find.text('ค่ารอบ'));
     await pumpApp(tester);
 
-    await tester.tap(find.text('ระยะทาง 301-500 เมตร'));
+    final cardFinder = find.ancestor(
+      of: find.text('ระยะทาง 301-500 เมตร'),
+      matching: find.byType(Card),
+    );
+    final editButtonFinder = find.descendant(
+      of: cardFinder,
+      matching: find.byIcon(Icons.edit_note),
+    );
+    await tester.tap(editButtonFinder);
     await pumpApp(tester);
 
     await tester.enterText(find.byType(TextField), '0');
@@ -141,7 +149,15 @@ Future<void> _addTrip(
   String optionLabel,
   String rounds,
 ) async {
-  await tester.tap(find.text(optionLabel));
+  final cardFinder = find.ancestor(
+    of: find.text(optionLabel),
+    matching: find.byType(Card),
+  );
+  final editButtonFinder = find.descendant(
+    of: cardFinder,
+    matching: find.byIcon(Icons.edit_note),
+  );
+  await tester.tap(editButtonFinder);
   await pumpApp(tester);
 
   await tester.enterText(find.byType(TextField), rounds);
