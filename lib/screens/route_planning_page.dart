@@ -7,7 +7,6 @@ import '../models/customer_record.dart';
 import '../providers/app_state_provider.dart';
 import '../services/location_service.dart';
 import '../core/design_tokens.dart';
-import '../core/theme_extensions.dart';
 
 class RoutePlanningPage extends StatefulWidget {
   const RoutePlanningPage({super.key});

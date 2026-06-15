@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:provider/provider.dart';
 import 'package:loscheck/database/hive_database.dart';
 import 'package:loscheck/models/customer_record.dart';
 import 'package:loscheck/screens/map_page.dart';
+import 'package:loscheck/providers/app_state_provider.dart';
 
 import 'test_helpers.dart';
 
@@ -43,7 +45,10 @@ void main() {
       ));
 
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: MapPage())),
+        ChangeNotifierProvider<AppStateProvider>(
+          create: (_) => AppStateProvider(),
+          child: const MaterialApp(home: Scaffold(body: MapPage())),
+        ),
       );
       await pumpApp(tester);
 
@@ -66,7 +71,10 @@ void main() {
       ));
 
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: MapPage())),
+        ChangeNotifierProvider<AppStateProvider>(
+          create: (_) => AppStateProvider(),
+          child: const MaterialApp(home: Scaffold(body: MapPage())),
+        ),
       );
       await pumpApp(tester);
 
@@ -75,10 +83,10 @@ void main() {
       await tester.pump();
 
       // Verify dropdown option appears
-      expect(find.text('สมชาย'), findsOneWidget);
+      expect(find.text('สมชาย'), findsWidgets);
 
-      // Tap on the result
-      await tester.tap(find.text('สมชาย').first);
+      // Tap on the result ListTile in the search dropdown
+      await tester.tap(find.byType(ListTile));
       await tester.pumpAndSettle();
 
       // Verify customer details are displayed (e.g. bottom sheet details)

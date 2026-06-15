@@ -381,7 +381,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: context.isDarkMode 
-                        ? Colors.amber.shade900.withValues(alpha: 0.2)
+                        ? Colors.amber.shade900.withOpacity(0.2)
                         : Colors.amber.shade50,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
@@ -739,7 +739,7 @@ class _SummaryPanel extends StatelessWidget {
     final actionButtons = [
       FilledButton.icon(
         style: FilledButton.styleFrom(
-          backgroundColor: Colors.white.withValues(alpha: 0.2),
+          backgroundColor: Colors.white.withOpacity(0.2),
           foregroundColor: Colors.white,
           padding: isSmallScreen 
               ? const EdgeInsets.symmetric(vertical: 8, horizontal: 10)
@@ -781,7 +781,7 @@ class _SummaryPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -805,7 +805,7 @@ class _SummaryPanel extends StatelessWidget {
                         : Theme.of(context).textTheme.titleLarge)
                         ?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: Colors.white.withOpacity(0.9),
                         ),
                   ),
                 ),
@@ -839,7 +839,7 @@ class _SummaryPanel extends StatelessWidget {
                   ? Theme.of(context).textTheme.bodyMedium 
                   : Theme.of(context).textTheme.titleMedium)
                   ?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: Colors.white.withOpacity(0.9),
                   ),
             ),
             SizedBox(height: isSmallScreen ? 12 : 24),

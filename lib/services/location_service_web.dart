@@ -7,31 +7,18 @@ LocationService createLocationService() => WebLocationService();
 class WebLocationService implements LocationService {
   @override
   Future<Map<String, double>?> getCurrentLocation() async {
-    final completer = Completer<Map<String, double>?>();
     try {
-      if (html.window.navigator.geolocation != null) {
-        html.window.navigator.geolocation.getCurrentPosition(
-          (position) {
-            final coords = position.coords;
-            if (coords != null && coords.latitude != null && coords.longitude != null) {
-              completer.complete({
-                'latitude': coords.latitude!.toDouble(),
-                'longitude': coords.longitude!.toDouble(),
-              });
-            } else {
-              completer.complete(null);
-            }
-          },
-          onError: (error) {
-            completer.complete(null);
-          },
-        );
-      } else {
-        completer.complete(null);
+      final position = await html.window.navigator.geolocation.getCurrentPosition();
+      final coords = position.coords;
+      if (coords != null && coords.latitude != null && coords.longitude != null) {
+        return {
+          'latitude': coords.latitude!.toDouble(),
+          'longitude': coords.longitude!.toDouble(),
+        };
       }
     } catch (_) {
-      completer.complete(null);
+      // Ignore and return null
     }
-    return completer.future;
+    return null;
   }
 }

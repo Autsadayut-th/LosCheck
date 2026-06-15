@@ -1,15 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong2.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/customer_record.dart';
 import '../providers/app_state_provider.dart';
 import '../services/location_service.dart';
-import '../core/design_tokens.dart';
-import '../core/theme_extensions.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -479,7 +477,7 @@ class _MapPageState extends State<MapPage> {
                 if (_isSearching && _searchResults.isNotEmpty)
                   Container(
                     margin: const EdgeInsets.only(top: 8, left: 62),
-                    maxHeight: 250,
+                    constraints: const BoxConstraints(maxHeight: 250),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),

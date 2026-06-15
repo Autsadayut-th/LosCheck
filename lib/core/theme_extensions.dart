@@ -112,7 +112,7 @@ extension ShadowX on List<BoxShadow> {
   List<BoxShadow> withOpacity(double opacity) {
     return map(
       (shadow) =>
-          shadow.copyWith(color: shadow.color.withValues(alpha: opacity)),
+          shadow.copyWith(color: shadow.color.withOpacity(opacity)),
     ).toList();
   }
 }
@@ -153,13 +153,13 @@ Widget emptyState(
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: context.colors.primaryContainer.withValues(alpha: 0.1),
+              color: context.colors.primaryContainer.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: 64,
-              color: context.colors.primary.withValues(alpha: 0.4),
+              color: context.colors.primary.withOpacity(0.4),
             ),
           ),
           SizedBox(height: DesignTokens.spacingL),

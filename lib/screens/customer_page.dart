@@ -43,8 +43,6 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   String _debouncedPhoneInput = '';
   String _debouncedPhoneFilter = '';
 
-  bool get _canFillDetails => _phoneController.text.trim().isNotEmpty;
-
   String get _activePhoneFilter {
     final manualFilter = _debouncedPhoneFilter.trim();
     if (manualFilter.isNotEmpty) {
@@ -695,7 +693,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: context.isDarkMode 
-                      ? Colors.amber.shade900.withValues(alpha: 0.2)
+                      ? Colors.amber.shade900.withOpacity(0.2)
                       : Colors.amber.shade50,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
@@ -792,7 +790,7 @@ class _CustomerForm extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(isSmallScreen ? 14 : 20),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
           width: 2,
         ),
       ),
@@ -832,7 +830,7 @@ class _CustomerForm extends StatelessWidget {
                   filled: true,
                   fillColor: Theme.of(
                     context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                   border: OutlineBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -867,7 +865,7 @@ class _CustomerForm extends StatelessWidget {
                   filled: true,
                   fillColor: Theme.of(
                     context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                   border: OutlineBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -901,7 +899,7 @@ class _CustomerForm extends StatelessWidget {
                   filled: true,
                   fillColor: Theme.of(
                     context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                   border: OutlineBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -951,7 +949,7 @@ class _CustomerForm extends StatelessWidget {
                         hintText: 'เช่น 13.7563',
                         prefixIcon: const Icon(Icons.pin_drop_outlined),
                         filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                         border: OutlineBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: isSmallScreen ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12) : null,
                       ),
@@ -977,7 +975,7 @@ class _CustomerForm extends StatelessWidget {
                         hintText: 'เช่น 100.5018',
                         prefixIcon: const Icon(Icons.pin_drop_outlined),
                         filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
                         border: OutlineBorder(borderRadius: BorderRadius.circular(12)),
                         contentPadding: isSmallScreen ? const EdgeInsets.symmetric(horizontal: 12, vertical: 12) : null,
                       ),
@@ -1237,7 +1235,7 @@ class _CustomerRecordTile extends StatelessWidget {
                     const SizedBox(width: 8),
                     Icon(
                       Icons.chevron_right,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
                     ),
                   ],
                 ),
@@ -1247,4 +1245,4 @@ class _CustomerRecordTile extends StatelessWidget {
   }
 }
 
-enum _CustomerAction { call, map, image, edit, delete }
+enum _CustomerAction { image, edit, delete }

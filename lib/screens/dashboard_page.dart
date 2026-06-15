@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../models/trip_record.dart';
 import '../models/customer_record.dart';
-import '../database/hive_database.dart';
 import '../providers/app_state_provider.dart';
 import '../widgets/shimmer_loading.dart';
 import '../core/design_tokens.dart';
@@ -359,7 +358,7 @@ class _StatCardState extends State<_StatCard>
             borderRadius: DesignTokens.borderRadiusXl,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                color: Colors.black.withOpacity(0.08),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -374,7 +373,7 @@ class _StatCardState extends State<_StatCard>
                   children: [
                     Icon(
                       widget.icon,
-                      color: widget.textColor.withValues(alpha: 0.8),
+                      color: widget.textColor.withOpacity(0.8),
                       size: isSmallScreen ? 20 : 28,
                     ),
                     SizedBox(width: isSmallScreen ? 6 : 8),
@@ -385,7 +384,7 @@ class _StatCardState extends State<_StatCard>
                             ? Theme.of(context).textTheme.bodySmall 
                             : Theme.of(context).textTheme.titleSmall)
                             ?.copyWith(
-                              color: widget.textColor.withValues(alpha: 0.9),
+                              color: widget.textColor.withOpacity(0.9),
                               fontWeight: FontWeight.w600,
                             ),
                       ),
@@ -418,7 +417,7 @@ class _StatCardState extends State<_StatCard>
                           ? Theme.of(context).textTheme.bodySmall 
                           : Theme.of(context).textTheme.bodyMedium)
                           ?.copyWith(
-                            color: widget.textColor.withValues(alpha: 0.8),
+                            color: widget.textColor.withOpacity(0.8),
                             fontWeight: FontWeight.bold,
                           ),
                     ),

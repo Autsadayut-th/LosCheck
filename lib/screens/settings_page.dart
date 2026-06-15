@@ -305,7 +305,7 @@ class _BackupCard extends StatelessWidget {
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = dangerous
-        ? Theme.of(context).colorScheme.errorContainer.withValues(alpha: isDarkMode ? 0.2 : 0.15)
+        ? Theme.of(context).colorScheme.errorContainer.withOpacity(isDarkMode ? 0.2 : 0.15)
         : null;
     final foregroundColor = dangerous
         ? Theme.of(context).colorScheme.error
@@ -318,7 +318,7 @@ class _BackupCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: dangerous
-              ? Theme.of(context).colorScheme.error.withValues(alpha: 0.4)
+              ? Theme.of(context).colorScheme.error.withOpacity(0.4)
               : Colors.grey.shade300,
           width: 1,
         ),
