@@ -1,6 +1,5 @@
 {
   "outputDirectory": "build/web",
-  "public": true,
   "cleanUrls": true,
   "rewrites": [
     {
