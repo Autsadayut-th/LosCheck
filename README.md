@@ -1,7 +1,14 @@
 # Los Check
 
-Flutter web app for tracking delivery trip fees and customer phone/address
-records. Deployed on [Vercel](https://los-check.vercel.app).
+Flutter mobile & web app for tracking delivery trip fees and customer phone/address records.
+
+## 📱 Download Android App
+
+You can download the latest Android installation file (APK) directly here:
+
+[![Download APK](https://img.shields.io/badge/Download-APK-green?style=for-the-badge&logo=android)](https://github.com/Autsadayut-th/LosCheck/releases/latest/download/app-release.apk)
+
+Or view all releases on the [GitHub Releases page](https://github.com/Autsadayut-th/LosCheck/releases).
 
 ## Features
 
