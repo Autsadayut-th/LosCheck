@@ -29,15 +29,6 @@ The build includes multiple renderers so Flutter can choose the best option at r
    - Proper scope and display settings
    - Maskable icons for modern PWA
 
-3. **.htaccess** (Apache Server)
-   - GZIP compression for all text assets
-   - Mod_deflate for dynamic compression
-   - Configured Cache-Control and Security headers (X-Frame-Options, etc.)
-
-4. **netlify.toml** (Netlify Alternative)
-   - HTML renderer build optimization
-   - Proper cache strategies
-   - Security headers
 
 ## Deployment Recommendations
 
