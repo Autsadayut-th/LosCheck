@@ -3,6 +3,7 @@
 *.log
 *.txt
 *_output.txt
+*.apk
 *.pyc
 *.swp
 .DS_Store
