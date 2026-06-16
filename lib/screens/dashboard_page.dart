@@ -10,6 +10,7 @@ import '../core/design_tokens.dart';
 import '../core/theme_extensions.dart';
 import 'map_page.dart';
 import 'route_planning_page.dart';
+import 'route_history_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -232,6 +233,10 @@ class _DashboardContent extends StatelessWidget {
                       end: Alignment.bottomRight,
                     ),
                     textColor: Colors.white,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const RouteHistoryPage()),
+                    ),
                   ),
                 ),
                 const SizedBox(width: DesignTokens.spacingM),
@@ -247,6 +252,10 @@ class _DashboardContent extends StatelessWidget {
                       end: Alignment.bottomRight,
                     ),
                     textColor: Colors.white,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const RouteHistoryPage()),
+                    ),
                   ),
                 ),
               ],
@@ -410,6 +419,7 @@ class _StatCard extends StatefulWidget {
     required this.icon,
     required this.gradient,
     required this.textColor,
+    this.onTap,
   });
 
   final String title;
@@ -418,6 +428,7 @@ class _StatCard extends StatefulWidget {
   final IconData icon;
   final Gradient gradient;
   final Color textColor;
+  final VoidCallback? onTap;
 
   @override
   State<_StatCard> createState() => _StatCardState();
@@ -449,7 +460,10 @@ class _StatCardState extends State<_StatCard>
 
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) => _controller.reverse(),
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.onTap?.call();
+      },
       onTapCancel: () => _controller.reverse(),
       child: ScaleTransition(
         scale: _controller.drive(Tween(begin: 1.0, end: 0.98)),

@@ -1207,164 +1207,219 @@ class _CustomerRecordTile extends StatelessWidget {
             ),
           ),
         ),
-        child: ListTile(
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: isCompact ? 14 : 20,
-            vertical: 8,
-          ),
-          leading: leadingWidget,
-          title: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            children: [
-              Text(
-                record.name,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              if (record.latitude == null || record.longitude == null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade100,
-                    border: Border.all(color: Colors.orange.shade300),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'ไม่มีพิกัด',
-                    style: TextStyle(
-                      color: Colors.orange.shade900,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+        child: InkWell(
+          onTap: onUse,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 14 : 20,
+              vertical: 12,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Row: Avatar, Name, Action Menu
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    leadingWidget,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              record.name,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (record.latitude == null || record.longitude == null)
+                            Container(
+                              margin: const EdgeInsets.only(left: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade100,
+                                border: Border.all(color: Colors.orange.shade300),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'ไม่มีพิกัด',
+                                style: TextStyle(
+                                  color: Colors.orange.shade900,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
+                    if (isCompact)
+                      PopupMenuButton<_CustomerAction>(
+                        tooltip: 'เมนูลูกค้า',
+                        onSelected: (action) {
+                          switch (action) {
+                            case _CustomerAction.edit:
+                              onUse();
+                              break;
+                            case _CustomerAction.delete:
+                              onDelete();
+                              break;
+                            case _CustomerAction.image:
+                              onImage();
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: _CustomerAction.image,
+                            child: ListTile(
+                              leading: Icon(Icons.image_outlined),
+                              title: Text('รูปภาพ'),
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: _CustomerAction.edit,
+                            child: ListTile(
+                              leading: Icon(Icons.edit_outlined),
+                              title: Text('แก้ไข'),
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: _CustomerAction.delete,
+                            child: ListTile(
+                              leading: Icon(Icons.delete_outline, color: Colors.red),
+                              title: Text('ลบ', style: TextStyle(color: Colors.red)),
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'โทรออก',
+                            onPressed: onCall,
+                            icon: Icon(
+                              Icons.call_outlined,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'แผนที่',
+                            onPressed: onMap,
+                            icon: Icon(
+                              Icons.map_outlined,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'รูปภาพ',
+                            onPressed: onImage,
+                            icon: Icon(
+                              Icons.image_outlined,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'แก้ไขข้อมูล',
+                            onPressed: onUse,
+                            icon: Icon(
+                              Icons.edit_outlined,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'ลบข้อมูลลูกค้า',
+                            onPressed: onDelete,
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.chevron_right,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
-            ],
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              '${record.phone}\n${record.address}' +
-                  (record.latitude != null && record.longitude != null
-                      ? '\nพิกัด: ${record.latitude}, ${record.longitude}'
-                      : ''),
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(height: 1.5),
+                
+                const SizedBox(height: 12),
+                
+                // Phone & Address (takes full width)
+                Text(
+                  '${record.phone}\n${record.address}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                ),
+                
+                if (record.latitude != null && record.longitude != null) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.pin_drop_outlined,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'พิกัด: ${record.latitude}, ${record.longitude}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                            ),
+                      ),
+                    ],
+                  ),
+                ],
+                
+                if (isCompact) ...[
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 8),
+                  
+                  // Bottom Button Bar: Call & Navigate (Mobile only)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton.icon(
+                        onPressed: onCall,
+                        icon: const Icon(Icons.phone_in_talk_outlined, size: 18),
+                        label: const Text('โทรออก'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: onMap,
+                        icon: const Icon(Icons.map_outlined, size: 18),
+                        label: const Text('แผนที่/นำทาง'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          elevation: 0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ),
           ),
-          isThreeLine: true,
-          onTap: onUse,
-          trailing: isCompact
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.phone_in_talk_outlined),
-                      color: Theme.of(context).colorScheme.primary,
-                      onPressed: onCall,
-                      tooltip: 'โทรออก',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.map_outlined),
-                      color: Theme.of(context).colorScheme.primary,
-                      onPressed: onMap,
-                      tooltip: 'แผนที่',
-                    ),
-                    PopupMenuButton<_CustomerAction>(
-                      tooltip: 'เมนูลูกค้า',
-                      onSelected: (action) {
-                        switch (action) {
-                          case _CustomerAction.edit:
-                            onUse();
-                          case _CustomerAction.delete:
-                            onDelete();
-                          case _CustomerAction.image:
-                            onImage();
-                          default:
-                            break;
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: _CustomerAction.image,
-                          child: ListTile(
-                            leading: Icon(Icons.image_outlined),
-                            title: Text('รูปภาพ'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: _CustomerAction.edit,
-                          child: ListTile(
-                            leading: Icon(Icons.edit_outlined),
-                            title: Text('แก้ไข'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: _CustomerAction.delete,
-                          child: ListTile(
-                            leading: Icon(Icons.delete_outline, color: Colors.red),
-                            title: Text('ลบ', style: TextStyle(color: Colors.red)),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ],
-                    )
-                  ],
-                )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'โทรออก',
-                      onPressed: onCall,
-                      icon: Icon(
-                        Icons.call_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'แผนที่',
-                      onPressed: onMap,
-                      icon: Icon(
-                        Icons.map_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'รูปภาพ',
-                      onPressed: onImage,
-                      icon: Icon(
-                        Icons.image_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'แก้ไขข้อมูล',
-                      onPressed: onUse,
-                      icon: Icon(
-                        Icons.edit_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'ลบข้อมูลลูกค้า',
-                      onPressed: onDelete,
-                      icon: Icon(
-                        Icons.delete_outline,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
-                    ),
-                  ],
-                ),
         ),
       ),
     );

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -56,6 +57,11 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
   List<CustomerRecord> _remainingQueue = [];
   List<CustomerRecord> _completedQueue = [];
 
+  // GPS Real-time Tracking
+  Timer? _gpsTimer;
+  LatLng? _liveGpsPosition;   // actual GPS dot on map
+  bool _isFollowingGps = true; // auto-pan map to follow GPS
+
   // Controllers for coordinates
   final TextEditingController _latController =
       TextEditingController(text: '13.7563');
@@ -78,10 +84,42 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
 
   @override
   void dispose() {
+    _gpsTimer?.cancel();
     _mapController.dispose();
     _latController.dispose();
     _lngController.dispose();
     super.dispose();
+  }
+
+  // ─── GPS Real-time Tracking ────────────────────────────────────
+
+  void _startGpsTracking() {
+    _gpsTimer?.cancel();
+    _updateGpsPosition(); // immediate first update
+    _gpsTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _updateGpsPosition();
+    });
+  }
+
+  void _stopGpsTracking() {
+    _gpsTimer?.cancel();
+    _gpsTimer = null;
+    if (mounted) setState(() => _liveGpsPosition = null);
+  }
+
+  Future<void> _updateGpsPosition() async {
+    try {
+      final loc = await LocationService().getCurrentLocation();
+      if (loc != null && mounted) {
+        final newPos = LatLng(loc['latitude']!, loc['longitude']!);
+        setState(() => _liveGpsPosition = newPos);
+        if (_isFollowingGps) {
+          _mapController.move(newPos, _mapController.camera.zoom);
+        }
+      }
+    } catch (_) {
+      // Silently ignore GPS errors during tracking
+    }
   }
 
   Future<void> _tryGetGPSLocation() async {
@@ -262,7 +300,11 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
       }
 
       _isNavigating = true;
+      _isFollowingGps = true;
     });
+
+    // Start GPS tracking when navigation begins
+    _startGpsTracking();
 
     // Fit map to show all route points after building the queue
     WidgetsBinding.instance.addPostFrameCallback((_) => _fitMapToRoute());
@@ -325,6 +367,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
   }
 
   void _resetNavigation() {
+    _stopGpsTracking();
     setState(() {
       _isNavigating = false;
       _remainingQueue = [];
@@ -368,21 +411,166 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
     );
   }
 
-  Future<void> _openGoogleMapsDirections(CustomerRecord customer) async {
-    if (customer.latitude == null || customer.longitude == null) return;
-    final uri = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1'
-      '&origin=$_currentLat,$_currentLng'
-      '&destination=${customer.latitude},${customer.longitude}'
-      '&travelmode=driving',
+  /// Shows bottom sheet for selecting navigation app / mode
+  Future<void> _showNavigationOptions(CustomerRecord activeCustomer) async {
+    final originLat = _liveGpsPosition?.latitude ?? _currentLat;
+    final originLng = _liveGpsPosition?.longitude ?? _currentLng;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'เลือกแอปนำทาง',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'ปลายทาง: ${activeCustomer.name}',
+                style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Google Maps — จุดเดียว
+              _NavOptionTile(
+                icon: Icons.map,
+                color: const Color(0xFF4285F4),
+                title: 'Google Maps — จุดนี้',
+                subtitle: 'เปิดนำทางไปยัง ${activeCustomer.name} ทันที',
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final uri = Uri.parse(
+                    'https://www.google.com/maps/dir/?api=1'
+                    '&origin=$originLat,$originLng'
+                    '&destination=${activeCustomer.latitude},${activeCustomer.longitude}'
+                    '&travelmode=driving',
+                  );
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+
+              // Google Maps — ทุกจุดพร้อมกัน
+              if (_remainingQueue.length > 1)
+                _NavOptionTile(
+                  icon: Icons.alt_route,
+                  color: const Color(0xFF34A853),
+                  title: 'Google Maps — ทุกจุดที่เหลือ',
+                  subtitle: 'วางแผน ${_remainingQueue.length} จุดพร้อมกัน (สูงสุด 8 จุด)',
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _openAllWaypointsInGoogleMaps(
+                      originLat, originLng, _remainingQueue);
+                  },
+                ),
+              if (_remainingQueue.length > 1) const SizedBox(height: 8),
+
+              // Waze
+              _NavOptionTile(
+                icon: Icons.assistant_navigation,
+                color: const Color(0xFF05C8F7),
+                title: 'Waze',
+                subtitle: 'เปิด Waze นำทางไปยัง ${activeCustomer.name}',
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _openWaze(activeCustomer);
+                },
+              ),
+              const SizedBox(height: 8),
+
+              // Call customer
+              if (activeCustomer.phone.isNotEmpty)
+                _NavOptionTile(
+                  icon: Icons.phone_outlined,
+                  color: Colors.green,
+                  title: 'โทรหาลูกค้า',
+                  subtitle: activeCustomer.phone,
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final uri = Uri.parse(
+                        'tel:${activeCustomer.phone.replaceAll(RegExp(r'[^0-9]'), '')}');
+                    if (await canLaunchUrl(uri)) await launchUrl(uri);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  /// Opens Google Maps with up to 8 waypoints (all remaining destinations)
+  Future<void> _openAllWaypointsInGoogleMaps(
+      double originLat, double originLng,
+      List<CustomerRecord> remaining) async {
+    final stops = remaining
+        .where((c) => c.latitude != null && c.longitude != null)
+        .take(8)
+        .toList();
+    if (stops.isEmpty) return;
+
+    final destination = stops.last;
+    final waypoints = stops.length > 1
+        ? stops.sublist(0, stops.length - 1)
+            .map((c) => '${c.latitude},${c.longitude}')
+            .join('|')
+        : null;
+
+    var url = 'https://www.google.com/maps/dir/?api=1'
+        '&origin=$originLat,$originLng'
+        '&destination=${destination.latitude},${destination.longitude}'
+        '&travelmode=driving';
+    if (waypoints != null) url += '&waypoints=$waypoints';
+
+    final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (!mounted) return;
+    } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถเปิด Google Maps ได้')),
-      );
+        const SnackBar(content: Text('ไม่สามารถเปิด Google Maps ได้')));
+    }
+  }
+
+  /// Opens Waze app for the active destination
+  Future<void> _openWaze(CustomerRecord customer) async {
+    if (customer.latitude == null || customer.longitude == null) return;
+    final wazeUri = Uri.parse(
+      'waze://?ll=${customer.latitude},${customer.longitude}&navigate=yes',
+    );
+    final webUri = Uri.parse(
+      'https://waze.com/ul?ll=${customer.latitude},${customer.longitude}&navigate=yes',
+    );
+    if (await canLaunchUrl(wazeUri)) {
+      await launchUrl(wazeUri, mode: LaunchMode.externalApplication);
+    } else if (await canLaunchUrl(webUri)) {
+      await launchUrl(webUri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถเปิด Waze ได้')));
     }
   }
 
@@ -452,7 +640,58 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
       );
     }
 
+    // Live GPS position dot (real-time tracking, shown only when available)
+    if (_liveGpsPosition != null) {
+      markers.add(
+        Marker(
+          point: _liveGpsPosition!,
+          width: 56,
+          height: 56,
+          child: _buildLiveGpsDot(),
+        ),
+      );
+    }
+
     return markers;
+  }
+
+  /// Animated pulsing dot for live GPS position
+  Widget _buildLiveGpsDot() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Outer pulse ring
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2196F3).withValues(alpha: 0.2),
+            border: Border.all(
+              color: const Color(0xFF2196F3).withValues(alpha: 0.4),
+              width: 1.5,
+            ),
+          ),
+        ),
+        // Inner solid dot
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2196F3),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withValues(alpha: 0.5),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildPinMarker({
@@ -469,7 +708,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -519,7 +758,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
       Polyline(
         points: pathPoints,
         strokeWidth: 3.5,
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.75),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
       ),
     ];
   }
@@ -568,6 +807,24 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                 child: const Icon(Icons.fit_screen),
               ),
             ),
+            // Follow-GPS toggle button
+            if (_isNavigating)
+              Positioned(
+                bottom: 10,
+                left: 10,
+                child: FloatingActionButton.small(
+                  heroTag: 'followGps',
+                  onPressed: () => setState(() => _isFollowingGps = !_isFollowingGps),
+                  tooltip: _isFollowingGps ? 'ปิดการติดตาม GPS' : 'เปิดการติดตาม GPS',
+                  backgroundColor: _isFollowingGps
+                      ? const Color(0xFF2196F3)
+                      : null,
+                  foregroundColor: _isFollowingGps ? Colors.white : null,
+                  child: Icon(
+                    _isFollowingGps ? Icons.gps_fixed : Icons.gps_not_fixed,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -587,6 +844,28 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _isNavigating ? 'นำทางจัดส่ง' : 'วางแผนเส้นทาง',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        leading: _isNavigating
+            ? IconButton(
+                tooltip: 'ยกเลิกแผนการเดินทาง',
+                icon: const Icon(Icons.close),
+                onPressed: _resetNavigation,
+              )
+            : const BackButton(),
+        actions: _isNavigating
+            ? [
+                IconButton(
+                  tooltip: 'แสดงเส้นทางทั้งหมดบนแผนที่',
+                  icon: const Icon(Icons.fit_screen_outlined),
+                  onPressed: _fitMapToRoute,
+                ),
+              ]
+            : null,
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -606,12 +885,6 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
           c.phone.contains(_searchQuery);
     }).toList();
 
-    // Selected customers with valid coords for the setup map
-    final selectedWithCoords = customers.where((c) {
-      return _selectedCustomerPhones.contains(c.phone) &&
-          c.latitude != null &&
-          c.longitude != null;
-    }).toList();
 
     // Adaptive map height: smaller on compact screens (e.g. Infinix Smart 3)
     final screenHeight = MediaQuery.sizeOf(context).height;
@@ -639,7 +912,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                       color: Theme.of(context)
                           .colorScheme
                           .surface
-                          .withOpacity(0.88),
+                          .withValues(alpha: 0.88),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -746,7 +1019,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                   color: Theme.of(context)
                       .colorScheme
                       .surfaceContainerHighest
-                      .withOpacity(0.5),
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 padding: const EdgeInsets.all(4),
@@ -809,7 +1082,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                     child: ListView.separated(
                       padding: const EdgeInsets.all(6),
                       itemCount: filteredCustomers.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (_, x) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final customer = filteredCustomers[index];
                         final hasCoords = customer.latitude != null &&
@@ -1009,7 +1282,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                 Polyline(
                   points: previewPathPoints,
                   strokeWidth: 3.0,
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
                 ),
               ],
             ),
@@ -1051,13 +1324,17 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Top: Embedded live map (40%) ─────────────────────────
-        SizedBox(height: 220, child: _buildEmbeddedMap()),
+        // ── Top: Embedded live map (adaptive height) ──────────────
+        Builder(builder: (context) {
+          final screenH = MediaQuery.sizeOf(context).height;
+          final mapH = screenH < 650 ? 150.0 : (screenH < 750 ? 180.0 : 220.0);
+          return SizedBox(height: mapH, child: _buildEmbeddedMap());
+        }),
 
-        // ── Bottom: Navigation UI (60%) ──────────────────────────
+        // ── Bottom: Navigation UI ──────────────────────────────────
         Expanded(
           child: Padding(
-            padding: DesignTokens.paddingM,
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1081,33 +1358,33 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
                 // Progress Bar
                 LinearProgressIndicator(
                   value: progress,
                   borderRadius: BorderRadius.circular(10),
-                  minHeight: 10,
+                  minHeight: 8,
                   backgroundColor: Theme.of(context)
                       .colorScheme
                       .surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation<Color>(
                       Theme.of(context).colorScheme.primary),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
 
                 // Active Customer Card
                 Card(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  elevation: 4,
+                  elevation: 3,
                   shape: RoundedRectangleBorder(
                     borderRadius: DesignTokens.borderRadiusLg,
                     side: BorderSide(
                         color: Theme.of(context).colorScheme.primary,
-                        width: 2),
+                        width: 1.5),
                   ),
                   child: Padding(
-                    padding: DesignTokens.paddingM,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -1141,7 +1418,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 6),
                         Text(
                           activeCustomer.name,
                           style: Theme.of(context)
@@ -1162,7 +1439,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onPrimaryContainer
-                                .withOpacity(0.85),
+                                .withValues(alpha: 0.85),
                           ),
                         ),
                         Text(
@@ -1172,22 +1449,22 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onPrimaryContainer
-                                .withOpacity(0.8),
+                                .withValues(alpha: 0.8),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
 
                         // Action buttons
                         Row(
                           children: [
                             Expanded(
                               child: OutlinedButton.icon(
-                                onPressed: () => _openGoogleMapsDirections(
+                                onPressed: () => _showNavigationOptions(
                                     activeCustomer),
                                 icon: const Icon(Icons.navigation),
-                                label: const Text('นำทาง Maps'),
+                                label: const Text('นำทาง'),
                                 style: OutlinedButton.styleFrom(
                                   side: BorderSide(
                                       color: Theme.of(context)
@@ -1195,7 +1472,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                                           .primary,
                                       width: 1.5),
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 12),
+                                      vertical: 10),
                                   shape: RoundedRectangleBorder(
                                       borderRadius:
                                           BorderRadius.circular(12)),
@@ -1215,7 +1492,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                                       .primary,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 12),
+                                      vertical: 10),
                                   shape: RoundedRectangleBorder(
                                       borderRadius:
                                           BorderRadius.circular(12)),
@@ -1228,7 +1505,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
 
                 // Routing Mode Selector
                 Row(
@@ -1246,7 +1523,7 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                         color: Theme.of(context)
                             .colorScheme
                             .surfaceContainerHighest
-                            .withOpacity(0.5),
+                            .withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       padding: const EdgeInsets.all(4),
@@ -1554,13 +1831,94 @@ class _QueueItemCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 color:
-                    Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
         trailing: trailing,
+      ),
+    );
+  }
+}
+
+// ─── Navigation Option Tile ─────────────────────────────────────────────────
+
+class _NavOptionTile extends StatelessWidget {
+  const _NavOptionTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
