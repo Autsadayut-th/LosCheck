@@ -131,13 +131,13 @@ flutter build appbundle --release
 
 ---
 
-## 🔄 วิธี Migrate Data จาก localhost → Vercel (Web)
+## 🔄 วิธี Migrate Data ระหว่างอุปกรณ์ / เบราว์เซอร์ (IndexedDB Web)
 
-### ถ้าใช้เว็บ + Deploy ไป Vercel
+### ขั้นตอนการย้ายข้อมูลผ่าน Browser Console
 
-#### Step 1: Export จาก localhost
+#### Step 1: Export จากคลังข้อมูลเครื่องเดิม (localhost หรือ Domain เดิม)
 ```javascript
-// รันใน Browser Console ที่ localhost:xxxx (DevTools → Console)
+// รันใน Browser Console ของเว็บเดิม (DevTools → Console)
 (async () => {
   const dbs = await indexedDB.databases();
   const exportObj = {};
@@ -183,9 +183,9 @@ flutter build appbundle --release
 })();
 ```
 
-#### Step 2: Import ไป Vercel
-- เปิด Vercel URL (`https://los-check.vercel.app`)
-- รันคำสั่ง import ใน Console
+#### Step 2: Import ไปยังเว็บปลายทาง (หรือเว็บใหม่)
+- เปิดหน้าเว็บปลายทางที่ต้องการนำข้อมูลเข้า
+- รันคำสั่งนำเข้าข้อมูล (Import) ใน Console โดยดึงข้อมูลจากไฟล์ JSON ที่ทำการ Export ออกมาก่อนหน้า
 
 ---
 

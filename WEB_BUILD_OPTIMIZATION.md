@@ -29,18 +29,12 @@ The build includes multiple renderers so Flutter can choose the best option at r
    - Proper scope and display settings
    - Maskable icons for modern PWA
 
-3. **vercel.json** (Production Deployment)
-   - Cache-Control headers configured
-   - Security headers (X-Frame-Options, X-Content-Type-Options, etc)
-   - 1-year cache for immutable assets
-   - 1-hour revalidation for service worker
-
-4. **.htaccess** (Apache Server)
+3. **.htaccess** (Apache Server)
    - GZIP compression for all text assets
    - Mod_deflate for dynamic compression
-   - Cache headers matching Vercel config
+   - Configured Cache-Control and Security headers (X-Frame-Options, etc.)
 
-5. **netlify.toml** (Netlify Alternative)
+4. **netlify.toml** (Netlify Alternative)
    - HTML renderer build optimization
    - Proper cache strategies
    - Security headers
@@ -48,7 +42,7 @@ The build includes multiple renderers so Flutter can choose the best option at r
 ## Deployment Recommendations
 
 ### For Mobile Browsers
-1. Use **Vercel** with configured cache headers
+1. Configure correct Cache-Control and Security headers on your chosen web host.
 2. Enable GZIP compression at server level
 3. CDN should cache assets for 1 year (immutable)
 4. Service worker caches for 1 hour (revalidation)
