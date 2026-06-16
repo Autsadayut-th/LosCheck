@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 import '../models/distance_option.dart';
 import '../models/trip_record.dart';
 import '../database/hive_database.dart';
 import '../providers/app_state_provider.dart';
 import '../services/csv_export_service.dart';
+import '../services/file_share_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/rounds_dialog.dart';
 import '../core/theme_extensions.dart';
@@ -303,13 +305,144 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   Future<void> _exportCsv(List<TripRecord> trips) async {
     if (trips.isEmpty) return;
 
-    final csv = CsvExportService.exportTripRecords(trips);
-    await Clipboard.setData(ClipboardData(text: csv));
+    final selectedOption = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Text(
+                  'เลือกช่วงเวลาส่งออก CSV',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.all_inclusive),
+                title: const Text('ทุกรายการ (ทั้งหมด)'),
+                onTap: () => Navigator.pop(context, 'all'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.today),
+                title: const Text('เฉพาะวันนี้'),
+                onTap: () => Navigator.pop(context, 'today'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.date_range),
+                title: const Text('สัปดาห์นี้'),
+                onTap: () => Navigator.pop(context, 'week'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.calendar_month),
+                title: const Text('เดือนนี้'),
+                onTap: () => Navigator.pop(context, 'month'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.event),
+                title: const Text('เลือกช่วงวันที่กำหนดเอง...'),
+                onTap: () => Navigator.pop(context, 'custom'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('คัดลอกข้อมูล CSV แล้ว')));
+    if (selectedOption == null) return;
+
+    List<TripRecord> filteredTrips = [];
+    String dateRangeLabel = 'all';
+
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
+
+    if (selectedOption == 'all') {
+      filteredTrips = trips;
+      dateRangeLabel = 'all';
+    } else if (selectedOption == 'today') {
+      filteredTrips = trips
+          .where((t) =>
+              t.createdAt.isAfter(todayStart.subtract(const Duration(seconds: 1))) &&
+              t.createdAt.isBefore(todayEnd))
+          .toList();
+      dateRangeLabel = DateFormat('yyyy-MM-dd').format(now);
+    } else if (selectedOption == 'week') {
+      final weekday = now.weekday;
+      final weekStart = todayStart.subtract(Duration(days: weekday - 1));
+      filteredTrips = trips
+          .where((t) =>
+              t.createdAt.isAfter(weekStart.subtract(const Duration(seconds: 1))) &&
+              t.createdAt.isBefore(todayEnd))
+          .toList();
+      dateRangeLabel =
+          'week_${DateFormat('yyyy-MM-dd').format(weekStart)}_to_${DateFormat('yyyy-MM-dd').format(now)}';
+    } else if (selectedOption == 'month') {
+      final monthStart = DateTime(now.year, now.month, 1);
+      filteredTrips = trips
+          .where((t) =>
+              t.createdAt.isAfter(monthStart.subtract(const Duration(seconds: 1))) &&
+              t.createdAt.isBefore(todayEnd))
+          .toList();
+      dateRangeLabel = 'month_${DateFormat('yyyy-MM').format(now)}';
+    } else if (selectedOption == 'custom') {
+      if (!mounted) return;
+      final pickedRange = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+        locale: const Locale('th', 'TH'),
+      );
+      if (pickedRange == null) return;
+      final start = DateTime(pickedRange.start.year, pickedRange.start.month, pickedRange.start.day);
+      final end = DateTime(
+          pickedRange.end.year, pickedRange.end.month, pickedRange.end.day, 23, 59, 59, 999);
+      filteredTrips = trips
+          .where((t) =>
+              t.createdAt.isAfter(start.subtract(const Duration(seconds: 1))) &&
+              t.createdAt.isBefore(end))
+          .toList();
+      dateRangeLabel =
+          'custom_${DateFormat('yyyy-MM-dd').format(start)}_to_${DateFormat('yyyy-MM-dd').format(end)}';
+    }
+
+    if (filteredTrips.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ไม่พบรายการในช่วงเวลาที่เลือก'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final csv = CsvExportService.exportTripRecords(filteredTrips);
+    final filename = 'loscheck_trips_$dateRangeLabel.csv';
+
+    try {
+      await FileShareService.shareOrDownloadText(
+        filename: filename,
+        content: csv,
+        mimeType: 'text/csv',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการส่งออกไฟล์: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _clearSelectedDate() async {

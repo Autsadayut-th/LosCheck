@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loscheck/database/hive_database.dart';
 import 'package:loscheck/screens/settings_page.dart';
+import 'package:loscheck/services/file_share_service.dart';
 
 import 'test_helpers.dart';
 
@@ -27,11 +28,16 @@ void main() {
       }
       return null;
     });
+
+    FileShareService.mockHandler = ({required filename, required content, required mimeType}) async {
+      return;
+    };
   });
 
   tearDown(() async {
     await appDatabase.deleteAllCustomers();
     await appDatabase.deleteAllTrips();
+    FileShareService.mockHandler = null;
     // ignore: deprecated_member_use
     binding.window.clearPhysicalSizeTestValue();
     // ignore: deprecated_member_use
@@ -84,8 +90,7 @@ void main() {
     await pumpApp(tester);
 
     // Verify success snackbar appears
-    expect(find.textContaining('ข้อมูลสำรองแล้ว'), findsOneWidget);
-    expect(find.textContaining('คัดลอกไปยังคลิปบอร์ดแล้ว'), findsOneWidget);
+    expect(find.textContaining('ส่งออกข้อมูลสำรองเรียบร้อยแล้ว'), findsOneWidget);
   });
 
   testWidgets('clear all data opens confirmation dialog and completes', (

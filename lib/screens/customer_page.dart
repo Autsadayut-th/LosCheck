@@ -12,6 +12,7 @@ import '../models/customer_record.dart';
 import '../database/hive_database.dart';
 import '../providers/app_state_provider.dart';
 import '../services/csv_export_service.dart';
+import '../services/file_share_service.dart';
 import '../services/location_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../core/theme_extensions.dart';
@@ -39,25 +40,24 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   Timer? _filterDebounce;
-  String _phoneInput = '';
-  String _debouncedPhoneInput = '';
   String _debouncedPhoneFilter = '';
   CustomerSortMethod _sortMethod = CustomerSortMethod.name;
 
   String get _activePhoneFilter {
-    final manualFilter = _debouncedPhoneFilter.trim();
-    if (manualFilter.isNotEmpty) {
-      return manualFilter;
-    }
-    return _debouncedPhoneInput.trim();
+    return _debouncedPhoneFilter.trim();
   }
 
   List<CustomerRecord> _getFilteredRecords(List<CustomerRecord> customers) {
-    final query = _normalizePhone(_activePhoneFilter);
+    final query = _activePhoneFilter.toLowerCase();
+    final normalizedQuery = _normalizePhone(query);
+
     final filtered = query.isEmpty
         ? customers.toList()
         : customers.where((record) {
-            return _normalizePhone(record.phone).contains(query);
+            final matchesName = record.name.toLowerCase().contains(query);
+            final matchesPhone = normalizedQuery.isNotEmpty &&
+                _normalizePhone(record.phone).contains(normalizedQuery);
+            return matchesName || matchesPhone;
           }).toList();
 
     switch (_sortMethod) {
@@ -86,7 +86,6 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     _tabController = TabController(length: 2, vsync: this)..addListener(() {
       if (mounted) setState(() {});
     });
-    _phoneController.addListener(_onPhoneInputChanged);
     _phoneFilterController.addListener(_onPhoneFilterChanged);
     _mapLinkController.addListener(_onMapLinkChanged);
   }
@@ -95,7 +94,6 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   void dispose() {
     _tabController.dispose();
     _filterDebounce?.cancel();
-    _phoneController.removeListener(_onPhoneInputChanged);
     _phoneFilterController.removeListener(_onPhoneFilterChanged);
     _mapLinkController.removeListener(_onMapLinkChanged);
     _phoneController.dispose();
@@ -108,37 +106,19 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     super.dispose();
   }
 
-  void _onPhoneInputChanged() {
-    final nextPhoneInput = _phoneController.text;
-    final phoneChanged = _phoneInput != nextPhoneInput;
-    _phoneInput = nextPhoneInput;
-
-    if (phoneChanged) {
-      setState(() {});
-    }
-
-    _scheduleFilterRefresh(
-      phoneInput: nextPhoneInput,
-      phoneFilter: _phoneFilterController.text,
-    );
-  }
-
   void _onPhoneFilterChanged() {
     _scheduleFilterRefresh(
-      phoneInput: _phoneController.text,
       phoneFilter: _phoneFilterController.text,
     );
   }
 
   void _scheduleFilterRefresh({
-    required String phoneInput,
     required String phoneFilter,
   }) {
     _filterDebounce?.cancel();
     _filterDebounce = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) return;
       setState(() {
-        _debouncedPhoneInput = phoneInput;
         _debouncedPhoneFilter = phoneFilter;
       });
     });
@@ -153,12 +133,9 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   }
 
   void _clearActiveFilters() {
-    _phoneController.clear();
     _phoneFilterController.clear();
     _filterDebounce?.cancel();
     setState(() {
-      _phoneInput = '';
-      _debouncedPhoneInput = '';
       _debouncedPhoneFilter = '';
     });
   }
@@ -206,8 +183,6 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
         _latitudeController.clear();
         _longitudeController.clear();
         _phoneFilterController.clear();
-        _phoneInput = '';
-        _debouncedPhoneInput = '';
         _debouncedPhoneFilter = '';
       });
 
@@ -268,12 +243,22 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     if (customers.isEmpty) return;
 
     final csv = CsvExportService.exportCustomerRecords(customers);
-    await Clipboard.setData(ClipboardData(text: csv));
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('คัดลอกข้อมูลลูกค้า CSV แล้ว')),
-    );
+    
+    try {
+      await FileShareService.shareOrDownloadText(
+        filename: 'loscheck_customers.csv',
+        content: csv,
+        mimeType: 'text/csv',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการส่งออกไฟล์: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _useRecord(CustomerRecord record) {
@@ -284,8 +269,6 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       _latitudeController.text = record.latitude?.toString() ?? '';
       _longitudeController.text = record.longitude?.toString() ?? '';
       _phoneFilterController.clear();
-      _phoneInput = record.phone;
-      _debouncedPhoneInput = record.phone;
       _debouncedPhoneFilter = '';
     });
     _tabController.animateTo(1);
@@ -586,7 +569,6 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                 _latitudeController.clear();
                 _longitudeController.clear();
                 _mapLinkController.clear();
-                _phoneInput = '';
                 _tabController.animateTo(1);
               },
               child: const Icon(Icons.person_add),
@@ -681,7 +663,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
               SliverToBoxAdapter(
                 child: Text(
-                  'ค้นหาเบอร์โทร',
+                  'ค้นหาลูกค้า',
                   style: Theme.of(context).textTheme.titleLarge
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
@@ -691,15 +673,10 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                 child: TextField(
                   key: const Key('customerPhoneFilterField'),
                   controller: _phoneFilterController,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'[0-9+\-\s]'),
-                    ),
-                  ],
+                  keyboardType: TextInputType.text,
                   decoration: InputDecoration(
-                    labelText: 'กรองจากเบอร์โทร',
-                    hintText: 'พิมพ์บางส่วนของเบอร์',
+                    labelText: 'ค้นหาชื่อหรือเบอร์โทร',
+                    hintText: 'พิมพ์ชื่อหรือเบอร์โทรศัพท์',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _phoneFilterController.text.isEmpty
                         ? null
@@ -748,8 +725,8 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                   child: emptyState(
                     context,
                     icon: Icons.search_outlined,
-                    title: 'ไม่พบเบอร์โทรที่ค้นหา',
-                    message: 'ลองค้นหาด้วยเบอร์โทรอื่น',
+                    title: 'ไม่พบข้อมูลลูกค้าที่ค้นหา',
+                    message: 'ลองค้นหาด้วยชื่อหรือเบอร์โทรอื่น',
                   ),
                 )
               else

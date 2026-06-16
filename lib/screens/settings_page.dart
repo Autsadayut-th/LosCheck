@@ -1,12 +1,16 @@
+import 'dart:io' as io;
+import 'dart:convert' show utf8;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../core/design_tokens.dart';
 import '../core/theme_extensions.dart';
 import '../main.dart';
 import '../services/backup_service.dart';
+import '../services/file_share_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -25,12 +29,16 @@ class _SettingsPageState extends State<SettingsPage> {
       final jsonData = await BackupService.exportToJson();
       final filename = BackupService.generateBackupFilename();
 
-      await Clipboard.setData(ClipboardData(text: jsonData));
+      await FileShareService.shareOrDownloadText(
+        filename: filename,
+        content: jsonData,
+        mimeType: 'application/json',
+      );
 
       if (!mounted) return;
       showSuccessSnackbar(
         context,
-        message: 'ข้อมูลสำรองแล้ว ($filename) - คัดลอกไปยังคลิปบอร์ดแล้ว',
+        message: 'ส่งออกข้อมูลสำรองเรียบร้อยแล้ว ($filename)',
         duration: const Duration(seconds: 4),
       );
     } catch (e) {
@@ -41,37 +49,98 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _importBackup() async {
-    final controller = TextEditingController();
-
-    if (!mounted) return;
-    final result = await showDialog<String>(
+  Future<String?> _getBackupJsonString(String title) async {
+    final selectedOption = await showModalBottomSheet<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        scrollable: true,
-        title: const Text('นำเข้าข้อมูลสำรอง'),
-        content: TextField(
-          controller: controller,
-          minLines: 3,
-          maxLines: 10,
-          decoration: const InputDecoration(
-            hintText: 'วางข้อมูล JSON ที่คัดลอก...',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('นำเข้า'),
-          ),
-        ],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.file_open),
+                title: const Text('เลือกไฟล์สำรอง (.json)'),
+                onTap: () => Navigator.pop(context, 'file'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.paste),
+                title: const Text('วางข้อความสำรอง (Paste JSON)'),
+                onTap: () => Navigator.pop(context, 'paste'),
+              ),
+            ],
+          ),
+        );
+      },
     );
 
+    if (selectedOption == null) return null;
+
+    if (selectedOption == 'file') {
+      try {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+        if (result == null) return null;
+
+        if (result.files.single.bytes != null) {
+          return utf8.decode(result.files.single.bytes!);
+        } else if (result.files.single.path != null) {
+          final file = io.File(result.files.single.path!);
+          return await file.readAsString();
+        }
+      } catch (e) {
+        if (!mounted) return null;
+        showErrorSnackbar(context, message: 'ไม่สามารถอ่านไฟล์ได้: ${e.toString()}');
+      }
+    } else if (selectedOption == 'paste') {
+      final controller = TextEditingController();
+      if (!mounted) return null;
+      return await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          scrollable: true,
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            minLines: 3,
+            maxLines: 10,
+            decoration: const InputDecoration(
+              hintText: 'วางข้อมูล JSON ที่คัดลอก...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: const Text('ตกลง'),
+            ),
+          ],
+        ),
+      );
+    }
+    return null;
+  }
+
+  Future<void> _importBackup() async {
+    final result = await _getBackupJsonString('นำเข้าข้อมูลสำรอง');
     if (result == null || result.isEmpty) return;
 
     setState(() => _isProcessing = true);
@@ -88,36 +157,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _mergeBackup() async {
-    final controller = TextEditingController();
-
-    if (!mounted) return;
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        scrollable: true,
-        title: const Text('ผสานข้อมูลสำรอง'),
-        content: TextField(
-          controller: controller,
-          minLines: 3,
-          maxLines: 10,
-          decoration: const InputDecoration(
-            hintText: 'วางข้อมูล JSON ที่คัดลอก...',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('ผสาน'),
-          ),
-        ],
-      ),
-    );
-
+    final result = await _getBackupJsonString('ผสานข้อมูลสำรอง');
     if (result == null || result.isEmpty) return;
 
     setState(() => _isProcessing = true);

@@ -10,7 +10,6 @@ import '../core/design_tokens.dart';
 import '../core/theme_extensions.dart';
 import 'map_page.dart';
 import 'route_planning_page.dart';
-import 'route_history_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -48,8 +47,6 @@ class DashboardPage extends StatelessWidget {
               return _DashboardContent(
                 tripRecords: appState.trips,
                 customerRecords: appState.customers,
-                completedDeliveryPoints: appState.completedDeliveryPoints,
-                completedRouteDistance: appState.completedRouteDistance,
               );
             },
           ),
@@ -98,14 +95,10 @@ class _DashboardContent extends StatelessWidget {
   const _DashboardContent({
     required this.tripRecords,
     required this.customerRecords,
-    required this.completedDeliveryPoints,
-    required this.completedRouteDistance,
   });
 
   final List<TripRecord> tripRecords;
   final List<CustomerRecord> customerRecords;
-  final int completedDeliveryPoints;
-  final double completedRouteDistance;
 
   int get _totalTripRecords => tripRecords.length;
   int get _totalCustomerRecords => customerRecords.length;
@@ -211,51 +204,6 @@ class _DashboardContent extends StatelessWidget {
                       end: Alignment.bottomRight,
                     ),
                     textColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: DesignTokens.spacingM),
-          FadeInSlide(
-            delay: const Duration(milliseconds: 220),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _StatCard(
-                    title: 'จุดส่งวันนี้',
-                    value: '$completedDeliveryPoints',
-                    unit: 'จุด',
-                    icon: Icons.pin_drop,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF36D1DC), Color(0xFF5B86E5)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    textColor: Colors.white,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RouteHistoryPage()),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: DesignTokens.spacingM),
-                Expanded(
-                  child: _StatCard(
-                    title: 'ระยะทางนำทาง',
-                    value: completedRouteDistance.toStringAsFixed(1),
-                    unit: 'กม.',
-                    icon: Icons.navigation_rounded,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF00C6FF), Color(0xFF0072FF)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    textColor: Colors.white,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RouteHistoryPage()),
-                    ),
                   ),
                 ),
               ],

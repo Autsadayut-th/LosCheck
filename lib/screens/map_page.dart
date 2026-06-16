@@ -18,6 +18,7 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
 
@@ -365,10 +366,9 @@ class _MapPageState extends State<MapPage> {
   }
 
   void _showCustomerBottomSheet(CustomerRecord customer) {
-    showBottomSheet(
-      context: context,
+    _scaffoldKey.currentState?.showBottomSheet(
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      (context) {
         return Container(
           margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -598,6 +598,7 @@ class _MapPageState extends State<MapPage> {
     final customersWithCoords = appState.customers.where((c) => c.latitude != null && c.longitude != null).toList();
 
     return Scaffold(
+      key: _scaffoldKey,
       body: Stack(
         children: [
           // Full Screen Map
