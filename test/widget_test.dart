@@ -70,7 +70,10 @@ void main() {
     await tester.pumpWidget(const MyApp());
     await pumpApp(tester);
 
-    await tester.tap(find.text('ลูกค้า'));
+    await tester.tap(find.descendant(
+      of: find.byType(NavigationBar),
+      matching: find.text('ลูกค้า'),
+    ));
     await pumpApp(tester);
 
     expect(find.text('ข้อมูลลูกค้า'), findsOneWidget);

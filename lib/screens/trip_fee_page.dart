@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
@@ -41,8 +40,9 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   int _selectedDateTotal = 0;
   int _selectedDateRounds = 0;
 
-  // Memoization: skip recompute when trips list hasn't changed
+  // Memoization: skip recompute when trips list and selected date haven't changed
   List<TripRecord>? _lastComputedTrips;
+  DateTime? _lastComputedSelectedDate;
 
   List<_PeriodSummary> _buildPeriodSummaries(
     List<TripRecord> trips,
@@ -98,9 +98,10 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   }
 
   void _refreshDerivedData(List<TripRecord> trips) {
-    // Skip expensive recalculation if the trips list hasn't changed
-    if (identical(trips, _lastComputedTrips)) return;
+    // Skip expensive recalculation if the trips list and selected date haven't changed
+    if (identical(trips, _lastComputedTrips) && _selectedDate == _lastComputedSelectedDate) return;
     _lastComputedTrips = trips;
+    _lastComputedSelectedDate = _selectedDate;
 
     final selectedDateRecords = <TripRecord>[];
     var selectedDateTotal = 0;
@@ -127,15 +128,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 
   Future<void> _logInstantTrip(DistanceOption option) async {
     final now = DateTime.now();
@@ -687,12 +680,27 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     );
   }
 
+  List<_DistanceStats> _buildDistanceStats(List<TripRecord> trips) {
+    final stats = <String, _DistanceStats>{};
+    for (final record in trips) {
+      stats.putIfAbsent(
+        record.distanceLabel,
+        () => _DistanceStats(label: record.distanceLabel, count: 0, total: 0),
+      );
+      stats[record.distanceLabel]!.count += record.rounds;
+      stats[record.distanceLabel]!.total += record.totalBaht;
+    }
+    return stats.values.toList()..sort((a, b) => b.total.compareTo(a.total));
+  }
+
   Widget _buildReportsTab(
     BuildContext context,
     List<_DailyTripSummary> dailySummaries,
     List<_PeriodSummary> weeklySummaries,
     List<_PeriodSummary> monthlySummaries,
   ) {
+    final distanceStats = _buildDistanceStats(_lastComputedTrips ?? []);
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 680),
@@ -702,6 +710,34 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
           ),
           child: CustomScrollView(
             slivers: [
+              // ── สถิติตามระยะทาง (moved from Dashboard) ─────────────────
+              SliverToBoxAdapter(
+                child: Text(
+                  'สถิติตามระยะทาง',
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              if (distanceStats.isEmpty)
+                SliverToBoxAdapter(
+                  child: emptyState(
+                    context,
+                    icon: Icons.bar_chart_outlined,
+                    title: 'ยังไม่มีสถิติ',
+                    message: 'เพิ่มรายการเดินทางเพื่อดูสถิติ',
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (ctx, idx) => _DistanceStatCard(stat: distanceStats[idx]),
+                    childCount: distanceStats.length,
+                  ),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+              // ── สรุปรายวัน ───────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Text(
                   'สรุปรายวัน',
@@ -721,16 +757,15 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                 )
               else
                 SliverList(
-                  delegate: SliverChildBuilderDelegate((
-                    context,
-                    index,
-                  ) {
-                    return _DailySummaryTile(
-                      summary: dailySummaries[index],
-                    );
-                  }, childCount: dailySummaries.length),
+                  delegate: SliverChildBuilderDelegate(
+                    (ctx, idx) =>
+                        _DailySummaryTile(summary: dailySummaries[idx]),
+                    childCount: dailySummaries.length,
+                  ),
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+              // ── สรุปรายสัปดาห์ ───────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Text(
                   'สรุปรายสัปดาห์',
@@ -750,17 +785,17 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                 )
               else
                 SliverList(
-                  delegate: SliverChildBuilderDelegate((
-                    context,
-                    index,
-                  ) {
-                    return _PeriodSummaryTile(
-                      summary: weeklySummaries[index],
+                  delegate: SliverChildBuilderDelegate(
+                    (ctx, idx) => _PeriodSummaryTile(
+                      summary: weeklySummaries[idx],
                       formatLabel: _formatWeekLabel,
-                    );
-                  }, childCount: weeklySummaries.length),
+                    ),
+                    childCount: weeklySummaries.length,
+                  ),
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+              // ── สรุปรายเดือน ─────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: Text(
                   'สรุปรายเดือน',
@@ -780,15 +815,13 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                 )
               else
                 SliverList(
-                  delegate: SliverChildBuilderDelegate((
-                    context,
-                    index,
-                  ) {
-                    return _PeriodSummaryTile(
-                      summary: monthlySummaries[index],
+                  delegate: SliverChildBuilderDelegate(
+                    (ctx, idx) => _PeriodSummaryTile(
+                      summary: monthlySummaries[idx],
                       formatLabel: _formatMonthLabel,
-                    );
-                  }, childCount: monthlySummaries.length),
+                    ),
+                    childCount: monthlySummaries.length,
+                  ),
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
             ],
@@ -923,6 +956,100 @@ class _DistanceActionCard extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Distance Stats (migrated from DashboardPage)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _DistanceStats {
+  _DistanceStats({
+    required this.label,
+    required this.count,
+    required this.total,
+  });
+
+  final String label;
+  int count;
+  int total;
+}
+
+class _DistanceStatCard extends StatelessWidget {
+  const _DistanceStatCard({required this.stat});
+  final _DistanceStats stat;
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isSmallScreen = screenWidth < 380;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: isSmallScreen
+            ? const EdgeInsets.all(10)
+            : const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(isSmallScreen ? 6 : 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.route,
+                size: isSmallScreen ? 18 : 24,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+            SizedBox(width: isSmallScreen ? 8 : 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    stat.label,
+                    style: (isSmallScreen
+                            ? Theme.of(context).textTheme.bodyMedium
+                            : Theme.of(context).textTheme.titleMedium)
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: isSmallScreen ? 2 : 4),
+                  Text(
+                    '${stat.count} รอบ',
+                    style: (isSmallScreen
+                            ? Theme.of(context).textTheme.bodySmall
+                            : Theme.of(context).textTheme.bodyMedium)
+                        ?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${stat.total} ฿',
+              style: (isSmallScreen
+                      ? Theme.of(context).textTheme.titleMedium
+                      : Theme.of(context).textTheme.titleLarge)
+                  ?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _DailyTripSummary {
   const _DailyTripSummary({

@@ -9,7 +9,6 @@ import 'screens/customer_page.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/trip_fee_page.dart';
 import 'screens/settings_page.dart';
-import 'screens/route_planning_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

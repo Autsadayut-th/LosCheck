@@ -31,7 +31,13 @@ void main() {
 
       expect(find.text('Los Check'), findsOneWidget);
       expect(find.text('ค่ารอบ'), findsOneWidget);
-      expect(find.text('ลูกค้า'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('ลูกค้า'),
+        ),
+        findsOneWidget,
+      );
       await disposeAppTree(tester);
     });
 
@@ -41,23 +47,26 @@ void main() {
 
       // Wait until loading finishes
       int attempts = 0;
-      while (find.text('ภาพรวม').evaluate().isEmpty && attempts < 20) {
+      while (find.text('รายได้').evaluate().isEmpty && attempts < 20) {
         await tester.pump(const Duration(milliseconds: 100));
         attempts++;
       }
 
-      if (find.text('ภาพรวม').evaluate().isEmpty) {
+      if (find.text('รายได้').evaluate().isEmpty) {
         final textWidgets = tester.widgetList<Text>(find.byType(Text));
         for (final t in textWidgets) {
           print('FOUND TEXT: ${t.data}');
         }
       }
 
-      // Initially on DashboardPage
-      expect(find.text('ภาพรวม'), findsOneWidget);
+      // Initially on DashboardPage (shows stats like 'รายได้')
+      expect(find.text('รายได้'), findsOneWidget);
 
       // Navigate to CustomerPage
-      await tester.tap(find.text('ลูกค้า'));
+      await tester.tap(find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('ลูกค้า'),
+      ));
       await pumpApp(tester);
 
       expect(find.text('ข้อมูลลูกค้า'), findsOneWidget);
@@ -123,7 +132,10 @@ void main() {
       await pumpApp(tester);
 
       // Navigate to CustomerPage
-      await tester.tap(find.text('ลูกค้า'));
+      await tester.tap(find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('ลูกค้า'),
+      ));
       await pumpApp(tester);
 
       // Switch to Tab 2 to add customer
@@ -208,7 +220,10 @@ void main() {
       expect(find.text('15 บาท'), findsWidgets);
 
       // Navigate to CustomerPage
-      await tester.tap(find.text('ลูกค้า'));
+      await tester.tap(find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('ลูกค้า'),
+      ));
       await pumpApp(tester);
 
       // Navigate back to TripFeePage
@@ -285,7 +300,10 @@ void main() {
       await pumpApp(tester);
 
       // Navigate to CustomerPage
-      await tester.tap(find.text('ลูกค้า'));
+      await tester.tap(find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('ลูกค้า'),
+      ));
       await pumpApp(tester);
 
       // Switch to Tab 2 to add customers
@@ -362,7 +380,10 @@ void main() {
       expect(find.text('ยังไม่มีรายการในวันนี้'), findsOneWidget);
 
       // Navigate to CustomerPage
-      await tester.tap(find.text('ลูกค้า'));
+      await tester.tap(find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('ลูกค้า'),
+      ));
       await pumpApp(tester);
 
       // CustomerPage empty state

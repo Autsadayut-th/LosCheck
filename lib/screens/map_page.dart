@@ -31,6 +31,14 @@ class _MapPageState extends State<MapPage> {
   bool _isSearching = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _centerOnUser(showErrors: false);
+    });
+  }
+
+  @override
   void dispose() {
     _mapController.dispose();
     _searchController.dispose();
@@ -534,7 +542,7 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  Future<void> _centerOnUser() async {
+  Future<void> _centerOnUser({bool showErrors = true}) async {
     setState(() => _isLocating = true);
     try {
       final loc = await LocationService().getCurrentLocation();
@@ -545,7 +553,7 @@ class _MapPageState extends State<MapPage> {
           _mapCenter = userLatLng;
         });
       } else {
-        if (!mounted) return;
+        if (!showErrors || !mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('ไม่สามารถระบุพิกัด GPS ได้ กรุณาเปิดสิทธิ์ GPS ของอุปกรณ์'),
@@ -553,7 +561,7 @@ class _MapPageState extends State<MapPage> {
         );
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!showErrors || !mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('เกิดข้อผิดพลาดในการดึงพิกัด: $e')),
       );
