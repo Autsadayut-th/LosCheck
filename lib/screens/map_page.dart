@@ -29,6 +29,7 @@ class _MapPageState extends State<MapPage> {
   CustomerRecord? _selectedCustomer;
   List<CustomerRecord> _searchResults = [];
   bool _isSearching = false;
+  LatLng? _userLocation;
 
   @override
   void initState() {
@@ -64,6 +65,16 @@ class _MapPageState extends State<MapPage> {
       for (final customer in customers) {
         if (customer.latitude == null || customer.longitude == null) continue;
         markers.add(_buildSingleCustomerMarker(customer, isDark));
+      }
+      if (_userLocation != null) {
+        markers.add(
+          Marker(
+            point: _userLocation!,
+            width: 56,
+            height: 56,
+            child: _buildUserLocationDot(),
+          ),
+        );
       }
       return markers;
     }
@@ -137,6 +148,17 @@ class _MapPageState extends State<MapPage> {
       }
     });
 
+    if (_userLocation != null) {
+      markers.add(
+        Marker(
+          point: _userLocation!,
+          width: 56,
+          height: 56,
+          child: _buildUserLocationDot(),
+        ),
+      );
+    }
+
     return markers;
   }
 
@@ -178,6 +200,42 @@ class _MapPageState extends State<MapPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildUserLocationDot() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2196F3).withOpacity(0.2),
+            border: Border.all(
+              color: const Color(0xFF2196F3).withOpacity(0.4),
+              width: 1.5,
+            ),
+          ),
+        ),
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2196F3),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.5),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -551,6 +609,7 @@ class _MapPageState extends State<MapPage> {
         _mapController.move(userLatLng, 15.0);
         setState(() {
           _mapCenter = userLatLng;
+          _userLocation = userLatLng;
         });
       } else {
         if (!showErrors || !mounted) return;
@@ -678,7 +737,7 @@ class _MapPageState extends State<MapPage> {
                                   )
                                 : null,
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           ),
                         ),
                       ),
@@ -736,7 +795,7 @@ class _MapPageState extends State<MapPage> {
 
           // Zoom Buttons on Bottom Left
           Positioned(
-            bottom: 30,
+            bottom: 16,
             left: 20,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -778,24 +837,25 @@ class _MapPageState extends State<MapPage> {
 
           // Floating Action Button (FAB) for Current Location
           Positioned(
-            bottom: _selectedCustomer != null ? 180 : 30, // Shift up if bottom sheet is shown
+            bottom: _selectedCustomer != null ? 180 : 16, // Shift up if bottom sheet is shown
             right: 20,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              child: FloatingActionButton(
+              child: FloatingActionButton.small(
+                heroTag: 'map_my_loc',
                 onPressed: _isLocating ? null : _centerOnUser,
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 shape: const CircleBorder(),
-                elevation: 6,
+                elevation: 4,
                 child: _isLocating
                     ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white),
                       )
-                    : const Icon(Icons.my_location),
+                    : const Icon(Icons.my_location, size: 20),
               ),
             ),
           ),

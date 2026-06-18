@@ -12,6 +12,7 @@ import '../services/csv_export_service.dart';
 import '../services/file_share_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/rounds_dialog.dart';
+import '../widgets/edit_trip_record_dialog.dart';
 import '../core/theme_extensions.dart';
 
 class TripFeePage extends StatefulWidget {
@@ -242,18 +243,22 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   }
 
   Future<void> _editRecord(TripRecord record) async {
-    final newRounds = await showDialog<int>(
+    final result = await showDialog<({int rounds, int rateBaht})>(
       context: context,
-      builder: (context) => RoundsDialog(initialRounds: record.rounds),
+      builder: (context) => EditTripRecordDialog(
+        initialRounds: record.rounds,
+        initialRate: record.rateBaht,
+        distanceLabel: record.distanceLabel,
+      ),
     );
 
-    if (newRounds == null || newRounds == record.rounds) return;
+    if (result == null || (result.rounds == record.rounds && result.rateBaht == record.rateBaht)) return;
 
     final updated = TripRecord(
       id: record.id,
       distanceLabel: record.distanceLabel,
-      rateBaht: record.rateBaht,
-      rounds: newRounds,
+      rateBaht: result.rateBaht,
+      rounds: result.rounds,
       createdAt: record.createdAt,
     );
 

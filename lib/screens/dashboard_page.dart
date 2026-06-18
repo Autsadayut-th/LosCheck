@@ -119,6 +119,7 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
   CustomerRecord? _selectedCustomer;
   List<CustomerRecord> _searchResults = [];
   bool _isSearching = false;
+  LatLng? _userLocation;
 
   // ── Computed stats ──────────────────────────────────────────────────────────
   int get _totalRevenue =>
@@ -161,6 +162,16 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
       for (final c in customers) {
         if (c.latitude == null || c.longitude == null) continue;
         markers.add(_buildSingleMarker(c));
+      }
+      if (_userLocation != null) {
+        markers.add(
+          Marker(
+            point: _userLocation!,
+            width: 56,
+            height: 56,
+            child: _buildUserLocationDot(),
+          ),
+        );
       }
       return markers;
     }
@@ -227,6 +238,16 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
         );
       }
     });
+    if (_userLocation != null) {
+      markers.add(
+        Marker(
+          point: _userLocation!,
+          width: 56,
+          height: 56,
+          child: _buildUserLocationDot(),
+        ),
+      );
+    }
     return markers;
   }
 
@@ -270,6 +291,42 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildUserLocationDot() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2196F3).withOpacity(0.2),
+            border: Border.all(
+              color: const Color(0xFF2196F3).withOpacity(0.4),
+              width: 1.5,
+            ),
+          ),
+        ),
+        Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF2196F3),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2196F3).withOpacity(0.5),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -640,8 +697,11 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
     try {
       final loc = await LocationService().getCurrentLocation();
       if (loc != null) {
-        _mapController.move(
-            LatLng(loc['latitude']!, loc['longitude']!), 15.0);
+        final userLatLng = LatLng(loc['latitude']!, loc['longitude']!);
+        _mapController.move(userLatLng, 15.0);
+        setState(() {
+          _userLocation = userLatLng;
+        });
       } else {
         if (!showErrors || !mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -845,7 +905,7 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
 
           // ── Zoom buttons (bottom-left) ────────────────────────────────────
           Positioned(
-            bottom: 140,
+            bottom: 110,
             left: 16,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -889,23 +949,23 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
 
           // ── My-location FAB (bottom-right) ───────────────────────────────
           Positioned(
-            bottom: 140,
+            bottom: 110,
             right: 16,
-            child: FloatingActionButton(
+            child: FloatingActionButton.small(
               heroTag: 'dash_my_loc',
               onPressed: _isLocating ? null : _centerOnUser,
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Colors.white,
               shape: const CircleBorder(),
-              elevation: 6,
+              elevation: 4,
               child: _isLocating
                   ? const SizedBox(
-                      width: 24,
-                      height: 24,
+                      width: 16,
+                      height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: Colors.white),
+                          strokeWidth: 2.0, color: Colors.white),
                     )
-                  : const Icon(Icons.my_location),
+                  : const Icon(Icons.my_location, size: 20),
             ),
           ),
 
@@ -1250,7 +1310,7 @@ class _GlassSearchBar extends StatelessWidget {
               : null,
           border: InputBorder.none,
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
       ),
     );
