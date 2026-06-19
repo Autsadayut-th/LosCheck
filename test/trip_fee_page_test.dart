@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:loscheck/database/hive_database.dart';
 import 'package:loscheck/screens/trip_fee_page.dart';
 import 'package:loscheck/widgets/rounds_dialog.dart';
+import 'package:loscheck/widgets/edit_trip_record_dialog.dart';
 
 import 'test_helpers.dart';
 
@@ -214,16 +215,62 @@ void main() {
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await pumpApp(tester);
 
-      expect(find.byType(RoundsDialog), findsOneWidget);
+      expect(find.byType(EditTripRecordDialog), findsOneWidget);
 
       // Change rounds
       await tester.enterText(find.byType(TextField), '7');
-      await tester.tap(find.text('ตกลง'));
+      await tester.tap(find.text('บันทึก'));
       await pumpApp(tester);
 
       expect(find.textContaining('7 รอบ x 5 บาทต่อบิล'), findsOneWidget);
       expect(find.text('35 บาท'), findsWidgets);
     });
+
+    testWidgets('edits trip record rate and updates distance label accordingly', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TripFeePage(),
+          ),
+        ),
+      );
+      await pumpApp(tester);
+
+      // Add a record first
+      final cardFinder = find.ancestor(
+        of: find.text('ระยะทาง 0-300 เมตร'),
+        matching: find.byType(Card),
+      );
+      final editButtonFinder = find.descendant(
+        of: cardFinder,
+        matching: find.byIcon(Icons.edit_note),
+      );
+      await tester.tap(editButtonFinder);
+      await pumpApp(tester);
+      await tester.enterText(find.byType(TextField), '3');
+      await tester.tap(find.text('ตกลง'));
+      await pumpApp(tester);
+
+      // Tap edit button
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await pumpApp(tester);
+
+      expect(find.byType(EditTripRecordDialog), findsOneWidget);
+
+      // Change rate to 10 Baht
+      await tester.tap(find.byType(DropdownButtonFormField<int>));
+      await pumpApp(tester);
+      await tester.tap(find.text('10 บาท').last);
+      await pumpApp(tester);
+
+      await tester.tap(find.text('บันทึก'));
+      await pumpApp(tester);
+
+      expect(find.text('ระยะทาง 301-500 เมตร'), findsWidgets);
+      expect(find.textContaining('3 รอบ x 10 บาทต่อบิล'), findsOneWidget);
+      expect(find.text('30 บาท'), findsWidgets);
+    });
+
 
     testWidgets('shows delete confirmation when delete button is tapped', (
       tester,

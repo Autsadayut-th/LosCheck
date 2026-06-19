@@ -192,7 +192,7 @@ Widget emptyState(
 void showErrorSnackbar(
   BuildContext context, {
   required String message,
-  Duration duration = const Duration(seconds: 4),
+  Duration duration = const Duration(seconds: 3),
 }) {
   ScaffoldMessenger.of(context).clearSnackBars();
   ScaffoldMessenger.of(context).showSnackBar(

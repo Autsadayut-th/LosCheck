@@ -164,25 +164,28 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                 await appDatabase.deleteTrip(insertedId);
               } catch (e) {
                 if (!mounted) return;
+                ScaffoldMessenger.of(context).clearSnackBars();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('เกิดข้อผิดพลาดในการเลิกทำ: ${e.toString()}'),
                     backgroundColor: Colors.red,
+                    duration: const Duration(seconds: 3),
                   ),
                 );
               }
             },
           ),
-          duration: const Duration(seconds: 4),
+          duration: const Duration(milliseconds: 2500),
         ),
       );
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการบันทึก: ${e.toString()}'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -217,11 +220,12 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
       await appDatabase.insertTrip(record);
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการบันทึก: ${e.toString()}'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -254,9 +258,14 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
 
     if (result == null || (result.rounds == record.rounds && result.rateBaht == record.rateBaht)) return;
 
+    final matchedLabel = _options.firstWhere(
+      (opt) => opt.rateBaht == result.rateBaht,
+      orElse: () => DistanceOption(label: record.distanceLabel, rateBaht: result.rateBaht),
+    ).label;
+
     final updated = TripRecord(
       id: record.id,
-      distanceLabel: record.distanceLabel,
+      distanceLabel: matchedLabel,
       rateBaht: result.rateBaht,
       rounds: result.rounds,
       createdAt: record.createdAt,
@@ -266,11 +275,12 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
       await appDatabase.updateTrip(updated);
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการบันทึก: ${e.toString()}'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -289,11 +299,12 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
         await appDatabase.deleteTrip(record.id!);
       } catch (e) {
         if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาดในการลบ: ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -414,10 +425,12 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
 
     if (filteredTrips.isEmpty) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('ไม่พบรายการในช่วงเวลาที่เลือก'),
           backgroundColor: Colors.orange,
+          duration: Duration(milliseconds: 2500),
         ),
       );
       return;
@@ -434,10 +447,12 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
       );
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการส่งออกไฟล์: ${e.toString()}'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -455,11 +470,12 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
       await appDatabase.deleteTripsByDate(_selectedDate);
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการลบ: ${e.toString()}'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -1288,11 +1304,11 @@ class _RecordTile extends StatelessWidget {
     final isCompact = MediaQuery.sizeOf(context).width < 600;
     final totalText = '${record.totalBaht} บาท';
 
-    final Color leadingColor = switch (record.distanceLabel) {
-      'ระยะทาง 0-300 เมตร' => Colors.blue.shade400,
-      'ระยะทาง 301-500 เมตร' => Colors.green.shade400,
-      'ระยะทาง 501 เมตร - 3 กิโลเมตร' => Colors.orange.shade400,
-      'ระยะทาง มากกว่า 3 กิโลเมตร' => Colors.red.shade400,
+    final Color leadingColor = switch (record.rateBaht) {
+      5 => Colors.blue.shade400,
+      10 => Colors.green.shade400,
+      15 => Colors.orange.shade400,
+      25 => Colors.red.shade400,
       _ => Colors.grey.shade400,
     };
 

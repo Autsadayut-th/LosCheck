@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'dart:io' as io;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -375,6 +377,23 @@ class _MapPageState extends State<MapPage> {
                                   ],
                                 ),
                               ),
+                              if (customer.imageUrl != null && customer.imageUrl!.isNotEmpty) ...[
+                                const SizedBox(width: 12),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: SizedBox(
+                                    width: 48,
+                                    height: 48,
+                                    child: kIsWeb
+                                        ? Image.network(customer.imageUrl!, fit: BoxFit.cover)
+                                        : Image.file(
+                                            io.File(customer.imageUrl!),
+                                            fit: BoxFit.cover,
+                                            cacheWidth: 150,
+                                          ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -524,6 +543,77 @@ class _MapPageState extends State<MapPage> {
                     ),
                   ],
                 ),
+                if (customer.imageUrl != null && customer.imageUrl!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => Dialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppBar(
+                                title: Text(
+                                  'รูปบ้าน: ${customer.name}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                                automaticallyImplyLeading: false,
+                                backgroundColor: Colors.transparent,
+                                elevation: 0,
+                                actions: [
+                                  IconButton(
+                                    icon: const Icon(Icons.close),
+                                    onPressed: () => Navigator.of(context).pop(),
+                                  ),
+                                ],
+                              ),
+                              Flexible(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: kIsWeb
+                                        ? Image.network(customer.imageUrl!, fit: BoxFit.contain)
+                                        : Image.file(
+                                            io.File(customer.imageUrl!),
+                                            fit: BoxFit.contain,
+                                            cacheWidth: 800,
+                                          ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        height: 140,
+                        width: double.infinity,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                        child: kIsWeb
+                            ? Image.network(customer.imageUrl!, fit: BoxFit.cover)
+                            : Image.file(
+                                io.File(customer.imageUrl!),
+                                fit: BoxFit.cover,
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -613,16 +703,22 @@ class _MapPageState extends State<MapPage> {
         });
       } else {
         if (!showErrors || !mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('ไม่สามารถระบุพิกัด GPS ได้ กรุณาเปิดสิทธิ์ GPS ของอุปกรณ์'),
+            duration: Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       if (!showErrors || !mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาดในการดึงพิกัด: $e')),
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการดึงพิกัด: $e'),
+          duration: const Duration(seconds: 3),
+        ),
       );
     } finally {
       setState(() => _isLocating = false);

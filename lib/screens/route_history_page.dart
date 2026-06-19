@@ -27,15 +27,21 @@ class _RouteHistoryPageState extends State<RouteHistoryPage> {
       try {
         await appDatabase.deleteRouteCompletion(record.id!);
         if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ลบประวัติการนำทางเรียบร้อยแล้ว')),
+          const SnackBar(
+            content: Text('ลบประวัติการนำทางเรียบร้อยแล้ว'),
+            duration: Duration(milliseconds: 2500),
+          ),
         );
       } catch (e) {
         if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -136,10 +142,12 @@ class _RouteHistoryPageState extends State<RouteHistoryPage> {
         }
       } catch (e) {
         if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }

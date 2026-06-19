@@ -110,7 +110,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await pumpApp(tester);
       await tester.enterText(find.byType(TextField), '10');
-      await tester.tap(find.text('ตกลง'));
+      await tester.tap(find.text('บันทึก'));
       await pumpApp(tester);
 
       expect(find.textContaining('10 รอบ x 5 บาทต่อบิล'), findsOneWidget);

@@ -153,28 +153,34 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
           _lngController.text = _currentLng.toStringAsFixed(6);
         });
         if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('ดึงตำแหน่ง GPS ปัจจุบันสำเร็จ'),
             backgroundColor: Colors.green,
+            duration: Duration(milliseconds: 2500),
           ),
         );
       } else {
         if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
                 'ไม่สามารถดึงตำแหน่งได้ กรุณาเปิดสิทธิ์ GPS หรือใส่พิกัดด้วยตัวเอง'),
             backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาด: $e'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
     } finally {
@@ -278,10 +284,12 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
     }).toList();
 
     if (selectedTargets.isEmpty) {
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('กรุณาเลือกลูกค้าที่มีพิกัดอย่างน้อย 1 รายการ'),
           backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
         ),
       );
       return;
@@ -550,8 +558,13 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถเปิด Google Maps ได้')));
+        const SnackBar(
+          content: Text('ไม่สามารถเปิด Google Maps ได้'),
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -569,8 +582,13 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
     } else if (await canLaunchUrl(webUri)) {
       await launchUrl(webUri, mode: LaunchMode.externalApplication);
     } else if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่สามารถเปิด Waze ได้')));
+        const SnackBar(
+          content: Text('ไม่สามารถเปิด Waze ได้'),
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   }
 

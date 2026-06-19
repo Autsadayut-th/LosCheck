@@ -587,5 +587,17 @@ void main() {
 
       expect(find.text('ยังไม่มีข้อมูลลูกค้า'), findsOneWidget);
     });
+
+    testWidgets('displays image picker button in customer form', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: CustomerPage())),
+      );
+      await pumpApp(tester);
+      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
+      await pumpApp(tester);
+
+      expect(find.text('รูปภาพบ้านลูกค้า'), findsOneWidget);
+      expect(find.text('เพิ่มรูปภาพบ้าน'), findsOneWidget);
+    });
   });
 }

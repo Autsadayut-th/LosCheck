@@ -42,6 +42,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
   Timer? _filterDebounce;
   String _debouncedPhoneFilter = '';
   CustomerSortMethod _sortMethod = CustomerSortMethod.name;
+  String? _selectedImagePath;
 
   String get _activePhoneFilter {
     return _debouncedPhoneFilter.trim();
@@ -163,6 +164,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
         name: _nameController.text.trim(),
         address: _addressController.text.trim(),
         createdAt: DateTime.now(),
+        imageUrl: _selectedImagePath,
         latitude: latitude,
         longitude: longitude,
       );
@@ -182,15 +184,17 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
         _addressController.clear();
         _latitudeController.clear();
         _longitudeController.clear();
+        _selectedImagePath = null;
         _phoneFilterController.clear();
         _debouncedPhoneFilter = '';
       });
 
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('บันทึกข้อมูลลูกค้าสำเร็จ'),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+          duration: Duration(milliseconds: 2500),
         ),
       );
       debugPrint('=== Save Customer Completed Successfully ===');
@@ -199,11 +203,12 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       debugPrint('Error: $e');
       debugPrint('Error type: ${e.runtimeType}');
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการบันทึก: ${e.toString()}'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -220,20 +225,22 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     try {
       await appDatabase.deleteCustomer(record.phone);
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('ลบข้อมูลลูกค้าสำเร็จ'),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+          duration: Duration(milliseconds: 2500),
         ),
       );
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการลบ: ${e.toString()}'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 4),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -252,10 +259,12 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       );
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการส่งออกไฟล์: ${e.toString()}'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -268,6 +277,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       _addressController.text = record.address;
       _latitudeController.text = record.latitude?.toString() ?? '';
       _longitudeController.text = record.longitude?.toString() ?? '';
+      _selectedImagePath = record.imageUrl;
       _phoneFilterController.clear();
       _debouncedPhoneFilter = '';
     });
@@ -283,27 +293,33 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
           _longitudeController.text = loc['longitude']!.toStringAsFixed(6);
         });
         if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('ดึงพิกัด GPS ปัจจุบันสำเร็จ'),
             backgroundColor: Colors.green,
+            duration: Duration(milliseconds: 2500),
           ),
         );
       } else {
         if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('ไม่สามารถดึงพิกัดปัจจุบันได้ กรุณาอนุญาตสิทธิ์เข้าตำแหน่งหรือระบุพิกัดด้วยตัวเอง'),
             backgroundColor: Colors.orange,
+            duration: Duration(milliseconds: 2500),
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาดในการดึงตำแหน่ง: $e'),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -320,10 +336,12 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
         _longitudeController.text = coords['longitude']!.toStringAsFixed(6);
         _mapLinkController.clear();
       });
+      ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('ดึงพิกัดจากลิงก์ Google Maps สำเร็จ!'),
           backgroundColor: Colors.green,
+          duration: Duration(milliseconds: 2500),
         ),
       );
     }
@@ -396,9 +414,13 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       await launchUrl(uri);
     } else {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ไม่สามารถโทรออกได้')));
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ไม่สามารถโทรออกได้'),
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -421,9 +443,13 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ไม่สามารถเปิดแผนที่ได้')));
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ไม่สามารถเปิดแผนที่ได้'),
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -434,27 +460,69 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
       showDialog(
         context: context,
         builder: (context) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          clipBehavior: Clip.antiAlias,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              AppBar(
+                title: Text(
+                  'รูปบ้าน: ${record.name}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                automaticallyImplyLeading: false,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
               Flexible(
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: kIsWeb
-                      ? Image.network(record.imageUrl!, fit: BoxFit.contain)
-                      : Image.file(
-                          io.File(record.imageUrl!),
-                          fit: BoxFit.contain,
-                          cacheWidth: 800,
-                        ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: kIsWeb
+                        ? Image.network(record.imageUrl!, fit: BoxFit.contain)
+                        : Image.file(
+                            io.File(record.imageUrl!),
+                            fit: BoxFit.contain,
+                            cacheWidth: 800,
+                          ),
+                  ),
                 ),
               ),
+              const SizedBox(height: 8),
               OverflowBar(
                 alignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('ปิด'),
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      final updated = CustomerRecord(
+                        phone: record.phone,
+                        name: record.name,
+                        address: record.address,
+                        createdAt: record.createdAt,
+                        imageUrl: null,
+                        latitude: record.latitude,
+                        longitude: record.longitude,
+                      );
+                      await appDatabase.insertCustomer(updated);
+                    },
+                    child: const Text(
+                      'ลบรูปภาพ',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
                   TextButton(
                     onPressed: () {
@@ -492,6 +560,38 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
 
     // Persist only the affected record.
     await appDatabase.insertCustomer(updated);
+  }
+
+  Future<void> _pickImageForForm() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('ถ่ายรูปบ้าน (กล้อง)'),
+              onTap: () => Navigator.of(context).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('เลือกจากแกลเลอรี (อัลบั้ม)'),
+              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImagePath = pickedFile.path;
+      });
+    }
   }
 
   @override
@@ -569,6 +669,9 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                 _latitudeController.clear();
                 _longitudeController.clear();
                 _mapLinkController.clear();
+                setState(() {
+                  _selectedImagePath = null;
+                });
                 _tabController.animateTo(1);
               },
               child: const Icon(Icons.person_add),
@@ -817,6 +920,9 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                 longitudeController: _longitudeController,
                 mapLinkController: _mapLinkController,
                 canFillDetails: true,
+                selectedImagePath: _selectedImagePath,
+                onPickImage: _pickImageForForm,
+                onRemoveImage: () => setState(() => _selectedImagePath = null),
                 onSave: _saveCustomer,
                 onGetLocation: _fetchCurrentLocation,
               ),
@@ -842,6 +948,9 @@ class _CustomerForm extends StatelessWidget {
     required this.longitudeController,
     required this.mapLinkController,
     required this.canFillDetails,
+    this.selectedImagePath,
+    required this.onPickImage,
+    required this.onRemoveImage,
     required this.onSave,
     required this.onGetLocation,
   });
@@ -854,6 +963,9 @@ class _CustomerForm extends StatelessWidget {
   final TextEditingController longitudeController;
   final TextEditingController mapLinkController;
   final bool canFillDetails;
+  final String? selectedImagePath;
+  final VoidCallback onPickImage;
+  final VoidCallback onRemoveImage;
   final VoidCallback onSave;
   final VoidCallback onGetLocation;
 
@@ -1079,6 +1191,58 @@ class _CustomerForm extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
+              const SizedBox(height: 16),
+              Text(
+                'รูปภาพบ้านลูกค้า',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              if (selectedImagePath != null && selectedImagePath!.isNotEmpty)
+                Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        height: 180,
+                        width: double.infinity,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                        child: kIsWeb
+                            ? Image.network(selectedImagePath!, fit: BoxFit.cover)
+                            : Image.file(
+                                io.File(selectedImagePath!),
+                                fit: BoxFit.cover,
+                                cacheWidth: 800,
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: CircleAvatar(
+                        backgroundColor: Colors.black54,
+                        child: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: onRemoveImage,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                OutlinedButton.icon(
+                  onPressed: onPickImage,
+                  icon: const Icon(Icons.add_a_photo_outlined),
+                  label: const Text('เพิ่มรูปภาพบ้าน'),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                  ),
+                ),
               SizedBox(height: isSmallScreen ? 16 : 24),
               FilledButton.icon(
                 key: const Key('saveCustomerButton'),
@@ -1333,33 +1497,88 @@ class _CustomerRecordTile extends StatelessWidget {
                 const SizedBox(height: 12),
                 
                 // Phone & Address (takes full width)
-                Text(
-                  '${record.phone}\n${record.address}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.4,
-                      ),
-                ),
-                
-                if (record.latitude != null && record.longitude != null) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.pin_drop_outlined,
-                        size: 14,
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'พิกัด: ${record.latitude}, ${record.longitude}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${record.phone}\n${record.address}',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  height: 1.4,
+                                ),
+                          ),
+                          if (record.latitude != null && record.longitude != null) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.pin_drop_outlined,
+                                  size: 14,
+                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    'พิกัด: ${record.latitude}, ${record.longitude}',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.8),
+                                        ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
+                          ],
+                        ],
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 12),
+                    if (record.imageUrl != null && record.imageUrl!.isNotEmpty)
+                      InkWell(
+                        onTap: onImage,
+                        borderRadius: BorderRadius.circular(12),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: kIsWeb
+                                ? Image.network(record.imageUrl!, fit: BoxFit.cover)
+                                : Image.file(
+                                    io.File(record.imageUrl!),
+                                    fit: BoxFit.cover,
+                                    cacheWidth: 240,
+                                  ),
+                          ),
+                        ),
+                      )
+                    else
+                      InkWell(
+                        onTap: onImage,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.add_a_photo_outlined,
+                            size: 24,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
                 
                 if (isCompact) ...[
                   const SizedBox(height: 12),
