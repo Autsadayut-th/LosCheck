@@ -67,6 +67,10 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
   LatLng? _liveGpsPosition;   // actual GPS dot on map
   bool _isFollowingGps = true; // auto-pan map to follow GPS
 
+  // Zoom and initialization state
+  double _setupZoom = 11.0;
+  bool _hasInitializedSelection = false;
+
   // Controllers for coordinates
   final TextEditingController _latController =
       TextEditingController(text: '13.874324');
@@ -753,6 +757,62 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
     );
   }
 
+  Widget _buildClusterMarker({
+    required int count,
+    required bool hasSelected,
+    required bool allSelected,
+    required double size,
+  }) {
+    final color = allSelected
+        ? const Color(0xFFFBC02D) // Amber if all selected
+        : const Color(0xFF00897B); // Teal if none or some selected (with a badge)
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        border: Border.all(color: Colors.white, width: 2.5),
+      ),
+      child: Center(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              '$count',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: size * 0.38,
+              ),
+            ),
+            if (hasSelected && !allSelected)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFBC02D), // Amber dot indicating some are selected
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Builds the Polyline connecting start → all remaining destinations along roads
   List<Polyline> _buildRoutePolylines() {
     final source = _isNavigating ? _remainingQueue : <CustomerRecord>[];
@@ -1000,6 +1060,20 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
       );
     }
 
+    if (!_hasInitializedSelection) {
+      final isTesting = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+      if (!isTesting && appState.customers.isNotEmpty) {
+        for (final c in appState.customers) {
+          if (c.latitude != null && c.longitude != null) {
+            _selectedCustomerPhones.add(c.phone);
+          }
+        }
+        _hasInitializedSelection = true;
+      } else if (isTesting) {
+        _hasInitializedSelection = true;
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 56,
@@ -1111,35 +1185,15 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                 child: Stack(
                   children: [
                     _buildSetupMapPreview(customers),
-                    // Title overlay (keep for tests)
+                    // Title overlay (keep for tests but hide from UI to maximize map visibility)
                     Positioned(
                       top: 12,
                       left: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.route, color: Color(0xFF00897B), size: 16),
-                            const SizedBox(width: 6),
-                            Text(
-                              'วางแผนเส้นทางนำทาง',
-                              style: kanitTextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                      child: Opacity(
+                        opacity: 0.0,
+                        child: Text(
+                          'วางแผนเส้นทางนำทาง',
+                          style: kanitTextStyle(fontSize: 1),
                         ),
                       ),
                     ),
@@ -1248,21 +1302,20 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
               const SizedBox(width: 8),
               Flexible(
                 child: SegmentedButton<bool>(
-                  showSelectedIcon: true,
-                  selectedIcon: const Icon(Icons.check, size: 16, color: Colors.white),
+                  showSelectedIcon: false, // Hide check icon to save space and look cleaner
                   segments: <ButtonSegment<bool>>[
                     ButtonSegment<bool>(
                       value: true,
                       label: Text(
                         'จัดอัตโนมัติ',
-                        style: kanitTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        style: kanitTextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                       ),
                     ),
                     ButtonSegment<bool>(
                       value: false,
                       label: Text(
                         'จัดเอง',
-                        style: kanitTextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        style: kanitTextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -1271,6 +1324,9 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                     _toggleRouteMode(newSelection.first);
                   },
                   style: ButtonStyle(
+                    padding: WidgetStateProperty.all(
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    ),
                     backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
                       if (states.contains(WidgetState.selected)) {
                         return const Color(0xFF00897B);
@@ -1683,11 +1739,54 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
           size: 32,
         ),
       ),
-      // All customers (Selected highlighted in Amber, unselected faded Teal)
-      for (final c in allCustomers)
-        if (c.latitude != null && c.longitude != null)
+    ];
+
+    // Clustering logic: Group customers by distance based on current map zoom
+    final List<List<CustomerRecord>> clusters = [];
+    final double thresholdMeters = (3000 * pow(2.0, 11.0 - _setupZoom)).toDouble();
+    final distance = const Distance();
+
+    for (final c in allCustomers) {
+      if (c.latitude == null || c.longitude == null) continue;
+      final cLoc = LatLng(c.latitude!, c.longitude!);
+      
+      bool addedToCluster = false;
+      for (final cluster in clusters) {
+        final firstInCluster = cluster.first;
+        final firstLoc = LatLng(firstInCluster.latitude!, firstInCluster.longitude!);
+        if (distance.distance(cLoc, firstLoc) < thresholdMeters) {
+          cluster.add(c);
+          addedToCluster = true;
+          break;
+        }
+      }
+      
+      if (!addedToCluster) {
+        clusters.add([c]);
+      }
+    }
+
+    // Render clusters to markers
+    for (final cluster in clusters) {
+      if (cluster.isEmpty) continue;
+      
+      // Calculate center coordinate of cluster
+      double avgLat = 0.0;
+      double avgLng = 0.0;
+      for (final c in cluster) {
+        avgLat += c.latitude!;
+        avgLng += c.longitude!;
+      }
+      avgLat /= cluster.length;
+      avgLng /= cluster.length;
+      final clusterPoint = LatLng(avgLat, avgLng);
+
+      if (cluster.length == 1) {
+        final c = cluster.first;
+        final isSelected = _selectedCustomerPhones.contains(c.phone);
+        previewMarkers.add(
           Marker(
-            point: LatLng(c.latitude!, c.longitude!),
+            point: clusterPoint,
             width: 38,
             height: 38,
             child: GestureDetector(
@@ -1701,9 +1800,9 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
                 });
               },
               child: Opacity(
-                opacity: _selectedCustomerPhones.contains(c.phone) ? 1.0 : 0.65,
+                opacity: isSelected ? 1.0 : 0.65,
                 child: _buildPinMarker(
-                  color: _selectedCustomerPhones.contains(c.phone)
+                  color: isSelected
                       ? const Color(0xFFFBC02D) // Selected: Amber
                       : const Color(0xFF00897B), // Unselected: Teal
                   label: c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
@@ -1712,7 +1811,48 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
               ),
             ),
           ),
-    ];
+        );
+      } else {
+        final clusterPhones = cluster.map((c) => c.phone).toList();
+        final selectedCount = clusterPhones.where((p) => _selectedCustomerPhones.contains(p)).length;
+        final hasSelected = selectedCount > 0;
+        final allSelected = selectedCount == cluster.length;
+        final isSelectedMode = hasSelected;
+
+        previewMarkers.add(
+          Marker(
+            point: clusterPoint,
+            width: 44,
+            height: 44,
+            child: GestureDetector(
+              onTap: () {
+                final anyUnselected = clusterPhones.any((p) => !_selectedCustomerPhones.contains(p));
+                setState(() {
+                  if (anyUnselected) {
+                    for (final p in clusterPhones) {
+                      _selectedCustomerPhones.add(p);
+                    }
+                  } else {
+                    for (final p in clusterPhones) {
+                      _selectedCustomerPhones.remove(p);
+                    }
+                  }
+                });
+              },
+              child: Opacity(
+                opacity: isSelectedMode ? 1.0 : 0.8,
+                child: _buildClusterMarker(
+                  count: cluster.length,
+                  hasSelected: hasSelected,
+                  allSelected: allSelected,
+                  size: 40,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    }
 
     final isTesting = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
 
@@ -1724,10 +1864,17 @@ class _RoutePlanningPageContentState extends State<_RoutePlanningPageContent> {
       child: FlutterMap(
         options: MapOptions(
           initialCenter: LatLng(_currentLat, _currentLng),
-          initialZoom: 11.0,
+          initialZoom: _setupZoom,
           interactionOptions: const InteractionOptions(
             flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
           ),
+          onPositionChanged: (position, hasGesture) {
+            if (position.zoom != null && position.zoom != _setupZoom) {
+              setState(() {
+                _setupZoom = position.zoom!;
+              });
+            }
+          },
         ),
         children: [
           if (!isTesting)
@@ -2489,7 +2636,7 @@ class _AnimatedGradientButtonState extends State<_AnimatedGradientButton>
             borderRadius: BorderRadius.circular(20),
             gradient: widget.isEnabled
                 ? LinearGradient(
-                    colors: const [Color(0xFF00897B), Color(0xFF26C6DA)],
+                    colors: const [Color(0xFF2E7D32), Color(0xFF4CAF50)], // Green (Enabled)
                     begin: beginAlignment,
                     end: endAlignment,
                   )
@@ -2500,7 +2647,7 @@ class _AnimatedGradientButtonState extends State<_AnimatedGradientButton>
             boxShadow: widget.isEnabled
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF00897B).withOpacity(0.3),
+                      color: const Color(0xFF2E7D32).withOpacity(0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),

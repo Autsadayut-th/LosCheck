@@ -923,24 +923,24 @@ class _DistanceActionCardState extends State<_DistanceActionCard> with SingleTic
           child: Stack(
             children: [
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: const Color(0xFF00897B).withOpacity(0.08),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         _getDistanceIcon(widget.option.label),
-                        size: 24,
+                        size: 20,
                         color: const Color(0xFF00897B),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Expanded(
                       child: Center(
                         child: Text(
@@ -949,14 +949,14 @@ class _DistanceActionCardState extends State<_DistanceActionCard> with SingleTic
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: kanitTextStyle(
-                            fontSize: isSmallScreen ? 12 : 14,
+                            fontSize: isSmallScreen ? 11 : 12,
                             fontWeight: FontWeight.bold,
                             color: isDark ? Colors.white : Colors.black87,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
