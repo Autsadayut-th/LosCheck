@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,7 @@ import '../models/customer_record.dart';
 import '../providers/app_state_provider.dart';
 import '../services/location_service.dart';
 import '../core/design_tokens.dart';
+import '../core/theme_extensions.dart';
 import 'route_planning_page.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,6 +117,7 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
   double _currentZoom = 13.0;
   final LatLng _mapCenter = const LatLng(13.7563, 100.5018);
   bool _isLocating = false;
+  bool _isStatsExpanded = true;
 
   CustomerRecord? _selectedCustomer;
   List<CustomerRecord> _searchResults = [];
@@ -745,6 +748,37 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
   // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
+  Widget _buildStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color iconColor,
+    required bool isDark,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: iconColor, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: isDark ? Colors.white60 : Colors.black54,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tileUrl = isDark
@@ -754,6 +788,14 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
     final customersWithCoords = widget.customerRecords
         .where((c) => c.latitude != null && c.longitude != null)
         .toList();
+
+    final appState = Provider.of<AppStateProvider>(context);
+    final today = DateTime.now();
+    final todayTrips = widget.tripRecords.where((t) => t.isSameDay(today));
+    final todayRevenue = todayTrips.fold<int>(0, (sum, r) => sum + r.totalBaht);
+    final todayRounds = todayTrips.fold<int>(0, (sum, r) => sum + r.rounds);
+    final todayCustomers = appState.completedDeliveryPoints;
+    final todayDistance = appState.completedRouteDistance;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -787,7 +829,7 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
 
           // ── TOP overlay: Search + Stats ──────────────────────────────────
           Positioned(
-            top: 12,
+            top: MediaQuery.paddingOf(context).top + 12,
             left: 12,
             right: 12,
             child: Column(
@@ -802,51 +844,112 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
                 ),
                 const SizedBox(height: 10),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Left: Revenue, Items, Rounds (vertical column) ───────
-                    _GlassStatGroup(
-                      isDark: isDark,
-                      isVertical: true,
-                      children: [
-                        _MiniStat(
-                          icon: Icons.attach_money,
-                          value: '$_totalRevenue ฿',
-                          label: 'รายได้',
-                          color: const Color(0xFFF2994A),
-                        ),
-                        _HorizontalDivider(isDark: isDark),
-                        _MiniStat(
-                          icon: Icons.receipt_long,
-                          value: '$_totalItems',
-                          label: 'รายการ',
-                          color: const Color(0xFF11998E),
-                        ),
-                        _HorizontalDivider(isDark: isDark),
-                        _MiniStat(
-                          icon: Icons.local_shipping,
-                          value: '$_totalRounds',
-                          label: 'รอบ',
-                          color: const Color(0xFFF857A6),
+                // ── Floating Summary Card ─────────────────────────────────────
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.08)
+                            : const Color(0xFFE0F2F1),
+                        width: 1,
+                      ),
                     ),
-
-                    // ── Right: Total Customers ─────────────────────────────
-                    _GlassStatGroup(
-                      isDark: isDark,
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        _MiniStat(
-                          icon: Icons.people,
-                          value: '$_totalCustomers',
-                          label: 'ลูกค้า',
-                          color: const Color(0xFF7F00FF),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            setState(() {
+                              _isStatsExpanded = !_isStatsExpanded;
+                            });
+                          },
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Column(
+                                children: [
+                                  Text(
+                                    '$todayRevenue ฿',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark ? Colors.tealAccent.shade200 : const Color(0xFF00897B),
+                                    ),
+                                  ),
+                                  Text(
+                                    'รายได้วันนี้',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? Colors.white70 : Colors.black54,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Positioned(
+                                right: 0,
+                                child: AnimatedRotation(
+                                  turns: _isStatsExpanded ? 0.0 : 0.5,
+                                  duration: const Duration(milliseconds: 200),
+                                  child: Icon(
+                                    Icons.keyboard_arrow_up,
+                                    color: isDark ? Colors.white38 : Colors.black38,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        if (_isStatsExpanded) ...[
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 10),
+                            child: Divider(height: 1, thickness: 0.5),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildStatItem(
+                                icon: Icons.local_shipping_outlined,
+                                value: '$todayRounds',
+                                label: 'รอบวันนี้',
+                                iconColor: Colors.teal,
+                                isDark: isDark,
+                              ),
+                              _buildStatItem(
+                                icon: Icons.people_outline,
+                                value: '$todayCustomers',
+                                label: 'ลูกค้าวันนี้',
+                                iconColor: Colors.orange,
+                                isDark: isDark,
+                              ),
+                              _buildStatItem(
+                                icon: Icons.route_outlined,
+                                value: '${todayDistance.toStringAsFixed(1)} กม.',
+                                label: 'ระยะทาง',
+                                iconColor: Colors.blue,
+                                isDark: isDark,
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
-                  ],
+                  ),
                 ),
 
                 // ── Search Results Dropdown ──────────────────────────────────
@@ -903,13 +1006,14 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
             ),
           ),
 
-          // ── Zoom buttons (bottom-left) ────────────────────────────────────
+          // ── Stacked Map Controls (bottom-right) ──────────────────────────
           Positioned(
             bottom: 110,
-            left: 16,
+            right: 16,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Zoom In
                 FloatingActionButton.small(
                   heroTag: 'dash_zoom_in',
                   onPressed: () {
@@ -923,10 +1027,13 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
                   backgroundColor:
                       Theme.of(context).colorScheme.surface,
                   foregroundColor:
-                      Theme.of(context).colorScheme.primary,
+                      isDark ? Colors.tealAccent.shade200 : const Color(0xFF00897B),
+                  shape: const CircleBorder(),
+                  elevation: 2,
                   child: const Icon(Icons.add),
                 ),
                 const SizedBox(height: 8),
+                // Zoom Out
                 FloatingActionButton.small(
                   heroTag: 'dash_zoom_out',
                   onPressed: () {
@@ -940,32 +1047,30 @@ class _DashboardMapContentState extends State<_DashboardMapContent> {
                   backgroundColor:
                       Theme.of(context).colorScheme.surface,
                   foregroundColor:
-                      Theme.of(context).colorScheme.primary,
+                      isDark ? Colors.tealAccent.shade200 : const Color(0xFF00897B),
+                  shape: const CircleBorder(),
+                  elevation: 2,
                   child: const Icon(Icons.remove),
                 ),
+                const SizedBox(height: 12),
+                // My Location
+                FloatingActionButton(
+                  heroTag: 'dash_my_loc',
+                  onPressed: _isLocating ? null : _centerOnUser,
+                  backgroundColor: const Color(0xFF00897B),
+                  foregroundColor: Colors.white,
+                  shape: const CircleBorder(),
+                  elevation: 3,
+                  child: _isLocating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.0, color: Colors.white),
+                        )
+                      : const Icon(Icons.my_location),
+                ),
               ],
-            ),
-          ),
-
-          // ── My-location FAB (bottom-right) ───────────────────────────────
-          Positioned(
-            bottom: 110,
-            right: 16,
-            child: FloatingActionButton.small(
-              heroTag: 'dash_my_loc',
-              onPressed: _isLocating ? null : _centerOnUser,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.white,
-              shape: const CircleBorder(),
-              elevation: 4,
-              child: _isLocating
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2.0, color: Colors.white),
-                    )
-                  : const Icon(Icons.my_location, size: 20),
             ),
           ),
 
@@ -1080,47 +1185,34 @@ class _ActionButtonState extends State<_ActionButton>
       child: ScaleTransition(
         scale: _ctrl.drive(Tween(begin: 1.0, end: 0.97)),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          height: 56,
           decoration: BoxDecoration(
             gradient: widget.gradient,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 8,
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 6,
                 offset: const Offset(0, 3),
               ),
             ],
           ),
-          child: Row(
-            children: [
-              Icon(widget.icon, color: Colors.white, size: 28),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                    Text(
-                      widget.subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(widget.icon, color: Colors.white, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  widget.label,
+                  style: kanitTextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right,
-                  color: Colors.white.withOpacity(0.8)),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1276,29 +1368,27 @@ class _GlassSearchBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.black.withOpacity(0.55)
-            : Colors.white.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(30),
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
         border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.white.withOpacity(0.6),
+          color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE0F2F1),
+          width: 1.5,
         ),
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        style: kanitTextStyle(fontSize: 15),
         decoration: InputDecoration(
-          hintText: 'ค้นหาชื่อลูกค้า...',
-          prefixIcon: const Icon(Icons.search),
+          hintText: 'ค้นหาชื่อลูกค้าหรือเบอร์โทร...',
+          prefixIcon: Icon(Icons.search, color: isDark ? Colors.white70 : const Color(0xFF00897B)),
           suffixIcon: controller.text.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear),
@@ -1310,7 +1400,7 @@ class _GlassSearchBar extends StatelessWidget {
               : null,
           border: InputBorder.none,
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
     );

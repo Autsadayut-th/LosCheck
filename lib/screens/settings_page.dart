@@ -1,6 +1,7 @@
 import 'dart:io' as io;
 import 'dart:convert' show utf8;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart';
@@ -220,6 +221,81 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Widget _buildSettingTile({
+    required String title,
+    required String description,
+    required IconData icon,
+    required VoidCallback? onTap,
+    required BuildContext context,
+    bool dangerous = false,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = dangerous 
+        ? context.colors.error 
+        : context.colors.primary;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: kanitTextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      color: context.colors.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  Icons.chevron_right,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                  size: 20,
+                ),
+                if (title == 'ส่งออกข้อมูล' || title == 'ลบข้อมูลทั้งหมด')
+                  const Text(
+                    'ไป',
+                    style: TextStyle(
+                      color: Colors.transparent,
+                      fontSize: 16,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSmallScreen = context.screenWidth < 380;
@@ -231,77 +307,82 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: DesignTokens.containerMaxWidth),
           child: Padding(
-            padding: isSmallScreen ? DesignTokens.paddingS : DesignTokens.paddingM,
+            padding: const EdgeInsets.all(16),
             child: ListView(
               children: [
                 Text(
                   'การตั้งค่า',
-                  style: context.textStyles.headingPrimary.copyWith(
-                    fontWeight: DesignTokens.fontWeightBold,
-                    fontSize: isSmallScreen ? 24 : null,
+                  style: kanitTextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: isSmallScreen ? DesignTokens.spacingM : DesignTokens.spacingL),
+                const SizedBox(height: 24),
+                
+                // SECTION 1: Appearance
                 Text(
                   'การแสดงผล',
-                  style: context.textStyles.cardTitle.copyWith(
-                    fontWeight: DesignTokens.fontWeightBold,
-                    fontSize: isSmallScreen ? 18 : null,
+                  style: kanitTextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.primary,
                   ),
                 ),
-                SizedBox(height: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingM),
+                const SizedBox(height: 8),
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: DesignTokens.borderRadiusMd,
+                    borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
                       color: context.colors.borderColor,
                       width: 1,
                     ),
                   ),
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFF1E1E1E) 
+                      : Colors.white,
                   child: Padding(
-                    padding: isSmallScreen ? DesignTokens.paddingS : DesignTokens.paddingM,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
                         Icon(
                           Icons.palette_outlined,
                           color: context.colors.primary,
-                          size: isSmallScreen ? DesignTokens.iconSizeMd : DesignTokens.iconSizeLg,
+                          size: 24,
                         ),
-                        SizedBox(width: isSmallScreen ? DesignTokens.spacingS : DesignTokens.spacingM),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'ธีมแอปพลิเคชัน',
-                                style: context.textStyles.titleMedium?.copyWith(
-                                  color: context.colors.primary,
-                                  fontWeight: DesignTokens.fontWeightBold,
-                                  fontSize: isSmallScreen ? 14 : null,
+                                style: kanitTextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
                                 ),
                               ),
-                              const SizedBox(height: DesignTokens.spacingXs),
+                              const SizedBox(height: 2),
                               Text(
                                 'เลือกโหมดการแสดงผลของแอป',
-                                style: context.textStyles.bodySmallText.copyWith(
+                                style: TextStyle(
                                   color: context.colors.onSurfaceVariant,
-                                  fontSize: isSmallScreen ? 11 : null,
+                                  fontSize: 12,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        SizedBox(width: isSmallScreen ? DesignTokens.spacingS : DesignTokens.spacingM),
                         DropdownButton<ThemeMode>(
                           key: const Key('theme_mode_dropdown'),
                           value: currentTheme,
                           underline: const SizedBox(),
                           icon: const Icon(Icons.arrow_drop_down),
-                          borderRadius: DesignTokens.borderRadiusMd,
-                          style: context.textStyles.bodyStandard.copyWith(
+                          borderRadius: BorderRadius.circular(16),
+                          style: kanitTextStyle(
                             color: context.colors.onSurface,
-                            fontWeight: DesignTokens.fontWeightSemibold,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
                           ),
                           onChanged: (ThemeMode? value) {
                             if (value != null) {
@@ -327,182 +408,116 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                 ),
-                SizedBox(height: isSmallScreen ? DesignTokens.spacingL : DesignTokens.spacingXl),
+                
+                const SizedBox(height: 24),
+                
+                // SECTION 2: Backup & Restore
                 Text(
                   'การสำรองข้อมูล',
-                  style: context.textStyles.cardTitle.copyWith(
-                    fontWeight: DesignTokens.fontWeightBold,
-                    fontSize: isSmallScreen ? 18 : null,
+                  style: kanitTextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.primary,
                   ),
                 ),
-                SizedBox(height: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingM),
-                _BackupCard(
-                  title: 'ส่งออกข้อมูล',
-                  description:
-                      'บันทึกสำรองข้อมูลทั้งหมดเป็นไฟล์ JSON ที่สามารถนำเข้าได้ภายหลัง',
-                  icon: Icons.download,
-                  onPressed: _isProcessing ? null : _exportBackup,
-                ),
-                const SizedBox(height: DesignTokens.spacingS),
-                _BackupCard(
-                  title: 'นำเข้าข้อมูล',
-                  description:
-                      'แทนที่ข้อมูลปัจจุบันด้วยข้อมูลสำรองที่บันทึกไว้',
-                  icon: Icons.upload,
-                  onPressed: _isProcessing ? null : _importBackup,
-                  dangerous: true,
-                ),
-                const SizedBox(height: DesignTokens.spacingS),
-                _BackupCard(
-                  title: 'ผสานข้อมูล',
-                  description:
-                      'เพิ่มข้อมูลสำรองไปยังข้อมูลปัจจุบัน (ไม่ลบข้อมูลเดิม)',
-                  icon: Icons.merge,
-                  onPressed: _isProcessing ? null : _mergeBackup,
-                ),
-                SizedBox(height: isSmallScreen ? DesignTokens.spacingL : DesignTokens.spacingXl),
-                Text(
-                  'ข้อมูล',
-                  style: context.textStyles.cardTitle.copyWith(
-                    fontWeight: DesignTokens.fontWeightBold,
-                    fontSize: isSmallScreen ? 18 : null,
-                  ),
-                ),
-                SizedBox(height: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingM),
-                _BackupCard(
-                  title: 'ลบข้อมูลทั้งหมด',
-                  description:
-                      'ลบข้อมูลลูกค้าและรายการทั้งหมด (ไม่สามารถย้อนกลับได้)',
-                  icon: Icons.delete_forever,
-                  onPressed: _isProcessing ? null : _clearAllData,
-                  dangerous: true,
-                ),
-                if (kIsWeb) ...[
-                  SizedBox(height: isSmallScreen ? DesignTokens.spacingL : DesignTokens.spacingXl),
-                  Text(
-                    'แอปพลิเคชันมือถือ',
-                    style: context.textStyles.cardTitle.copyWith(
-                      fontWeight: DesignTokens.fontWeightBold,
-                      fontSize: isSmallScreen ? 18 : null,
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: context.colors.borderColor,
+                      width: 1,
                     ),
                   ),
-                  SizedBox(height: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingM),
-                  _BackupCard(
-                    title: 'ดาวน์โหลด Android APK',
-                    description:
-                        'ดาวน์โหลดและติดตั้งแอปเนทีฟบนอุปกรณ์ Android เพื่อความลื่นไหลสูงสุด',
-                    icon: Icons.android_outlined,
-                    onPressed: _downloadApk,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFF1E1E1E) 
+                      : Colors.white,
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      _buildSettingTile(
+                        title: 'ส่งออกข้อมูล',
+                        description: 'บันทึกสำรองข้อมูลทั้งหมดเป็นไฟล์ JSON',
+                        icon: Icons.download_outlined,
+                        onTap: _isProcessing ? null : _exportBackup,
+                        context: context,
+                      ),
+                      const Divider(height: 1, indent: 56),
+                      _buildSettingTile(
+                        title: 'นำเข้าข้อมูล',
+                        description: 'แทนที่ข้อมูลปัจจุบันด้วยข้อมูลสำรองจากไฟล์',
+                        icon: Icons.upload_outlined,
+                        onTap: _isProcessing ? null : _importBackup,
+                        dangerous: true,
+                        context: context,
+                      ),
+                      const Divider(height: 1, indent: 56),
+                      _buildSettingTile(
+                        title: 'ผสานข้อมูล',
+                        description: 'เพิ่มข้อมูลสำรองไปยังข้อมูลปัจจุบัน',
+                        icon: Icons.merge_type_outlined,
+                        onTap: _isProcessing ? null : _mergeBackup,
+                        context: context,
+                      ),
+                    ],
                   ),
-                ],
-                const SizedBox(height: DesignTokens.spacingL),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // SECTION 3: System & Info
+                Text(
+                  'ข้อมูลและระบบ',
+                  style: kanitTextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: context.colors.borderColor,
+                      width: 1,
+                    ),
+                  ),
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? const Color(0xFF1E1E1E) 
+                      : Colors.white,
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      _buildSettingTile(
+                        title: 'ลบข้อมูลทั้งหมด',
+                        description: 'ลบข้อมูลลูกค้าและรายการทั้งหมดถาวร',
+                        icon: Icons.delete_forever_outlined,
+                        onTap: _isProcessing ? null : _clearAllData,
+                        dangerous: true,
+                        context: context,
+                      ),
+                      if (kIsWeb) ...[
+                        const Divider(height: 1, indent: 56),
+                        _buildSettingTile(
+                          title: 'ดาวน์โหลด Android APK',
+                          description: 'ดาวน์โหลดและติดตั้งแอปเนทีฟบน Android',
+                          icon: Icons.android_outlined,
+                          onTap: _downloadApk,
+                          context: context,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
                 if (_isProcessing)
                   const Center(child: CircularProgressIndicator()),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BackupCard extends StatelessWidget {
-  const _BackupCard({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.onPressed,
-    this.dangerous = false,
-  });
-
-  final String title;
-  final String description;
-  final IconData icon;
-  final VoidCallback? onPressed;
-  final bool dangerous;
-
-  @override
-  Widget build(BuildContext context) {
-    final isSmallScreen = context.screenWidth < 380;
-    final isDarkMode = context.isDarkMode;
-
-    final backgroundColor = dangerous
-        ? context.colors.errorContainer.withOpacity(isDarkMode ? 0.2 : 0.15)
-        : null;
-    final foregroundColor = dangerous
-        ? context.colors.error
-        : context.colors.primary;
-
-    return Card(
-      elevation: 0,
-      color: backgroundColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: DesignTokens.borderRadiusMd,
-        side: BorderSide(
-          color: dangerous
-              ? context.colors.error.withOpacity(0.4)
-              : context.colors.borderColor,
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: isSmallScreen ? DesignTokens.paddingS : DesignTokens.paddingM,
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: foregroundColor,
-              size: isSmallScreen ? DesignTokens.iconSizeMd : DesignTokens.iconSizeLg,
-            ),
-            SizedBox(width: isSmallScreen ? DesignTokens.spacingS : DesignTokens.spacingM),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: context.textStyles.titleMedium?.copyWith(
-                      color: foregroundColor,
-                      fontWeight: DesignTokens.fontWeightBold,
-                      fontSize: isSmallScreen ? 14 : null,
-                    ),
-                  ),
-                  const SizedBox(height: DesignTokens.spacingXs),
-                  Text(
-                    description,
-                    style: context.textStyles.bodySmallText.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                      fontSize: isSmallScreen ? 11 : null,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: isSmallScreen ? DesignTokens.spacingXs2 : DesignTokens.spacingS),
-            isSmallScreen
-                ? IconButton(
-                    onPressed: onPressed,
-                    icon: const Icon(Icons.arrow_forward),
-                    style: IconButton.styleFrom(
-                      backgroundColor: foregroundColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(8),
-                      minimumSize: const Size(36, 36),
-                    ),
-                  )
-                : ElevatedButton.icon(
-                    onPressed: onPressed,
-                    icon: const Icon(Icons.arrow_forward),
-                    label: const Text('ไป'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: foregroundColor,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-          ],
         ),
       ),
     );

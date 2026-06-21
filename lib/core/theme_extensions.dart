@@ -1,6 +1,9 @@
 // Theme Extensions & Helper Functions.
 // Makes it easy to use design system tokens throughout the app.
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'design_tokens.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -327,3 +330,33 @@ emptyState(
   action: ElevatedButton(onPressed: () {}, child: Text('Add')),
 )
 */
+
+
+
+TextStyle kanitTextStyle({
+  double? fontSize,
+  FontWeight? fontWeight,
+  Color? color,
+  double? height,
+  TextStyle? textStyle,
+}) {
+  final isTesting = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+  if (isTesting) {
+    return TextStyle(
+      fontFamily: 'Roboto',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+    ).merge(textStyle);
+  }
+  return GoogleFonts.kanit(
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    color: color,
+    height: height,
+    textStyle: textStyle,
+  );
+}
+
+

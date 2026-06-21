@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
@@ -519,23 +520,34 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
           children: [
             Material(
               color: Theme.of(context).colorScheme.surface,
-              elevation: 1,
-              child: TabBar(
-                labelColor: Theme.of(context).colorScheme.primary,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: Theme.of(context).colorScheme.primary,
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                tabs: const [
-                  Tab(
-                    icon: Icon(Icons.edit_note),
-                    text: 'บันทึกค่ารอบ',
+              elevation: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+                      width: 1,
+                    ),
                   ),
-                  Tab(
-                    icon: Icon(Icons.analytics_outlined),
-                    text: 'สรุปและรายงาน',
-                  ),
-                ],
+                ),
+                child: TabBar(
+                  labelColor: const Color(0xFF00897B),
+                  unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+                  indicatorColor: const Color(0xFF00897B),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelStyle: kanitTextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  unselectedLabelStyle: kanitTextStyle(fontWeight: FontWeight.normal, fontSize: 15),
+                  tabs: const [
+                    Tab(
+                      icon: Icon(Icons.edit_note),
+                      text: 'บันทึกค่ารอบ',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.analytics_outlined),
+                      text: 'สรุปและรายงาน',
+                    ),
+                  ],
+                ),
               ),
             ),
             Expanded(
@@ -853,8 +865,9 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   }
 }
 
-class _DistanceActionCard extends StatelessWidget {
+class _DistanceActionCard extends StatefulWidget {
   const _DistanceActionCard({
+    super.key,
     required this.option,
     required this.onTap,
     required this.onEdit,
@@ -864,115 +877,120 @@ class _DistanceActionCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
 
-  IconData _getDistanceIcon(String label) {
-    if (label.contains('0-300')) {
-      return Icons.directions_walk;
-    } else if (label.contains('301-500')) {
-      return Icons.motorcycle;
-    } else if (label.contains('501')) {
-      return Icons.directions_car;
-    } else {
-      return Icons.local_shipping;
-    }
+  @override
+  State<_DistanceActionCard> createState() => _DistanceActionCardState();
+}
+
+class _DistanceActionCardState extends State<_DistanceActionCard> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+    duration: const Duration(milliseconds: 120),
+    vsync: this,
+  );
+
+  // Using file-level _getDistanceIcon helper
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool isSmallScreen = screenWidth < 380;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          InkWell(
-            onTap: onTap,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: Theme.of(context).colorScheme.primary,
-                    width: isSmallScreen ? 3 : 4,
-                  ),
-                ),
-              ),
-              padding: EdgeInsets.only(
-                left: isSmallScreen ? 4 : 6,
-                right: isSmallScreen ? 4 : 6,
-                top: isSmallScreen ? 12 : 16,
-                bottom: isSmallScreen ? 6 : 8,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    _getDistanceIcon(option.label),
-                    size: isSmallScreen ? 20 : 26,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 4),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        option.label,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: (isSmallScreen 
-                            ? Theme.of(context).textTheme.bodySmall 
-                            : Theme.of(context).textTheme.bodyMedium)
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+    return GestureDetector(
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) {
+        _ctrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _ctrl.reverse(),
+      child: ScaleTransition(
+        scale: _ctrl.drive(Tween(begin: 1.0, end: 0.96)),
+        child: Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE0F2F1),
+              width: 1,
+            ),
+          ),
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          child: Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00897B).withOpacity(0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _getDistanceIcon(widget.option.label),
+                        size: 24,
+                        color: const Color(0xFF00897B),
                       ),
                     ),
-                  ),
-                  SizedBox(height: isSmallScreen ? 2 : 4),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 10 : 12,
-                      vertical: isSmallScreen ? 3 : 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${option.rateBaht} ฿',
-                      style: (isSmallScreen 
-                          ? Theme.of(context).textTheme.bodyMedium 
-                          : Theme.of(context).textTheme.titleSmall)
-                          ?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          widget.option.label,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: kanitTextStyle(
+                            fontSize: isSmallScreen ? 12 : 14,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
                           ),
+                        ),
+                      ),
                     ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00897B),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${widget.option.rateBaht} ฿',
+                        style: kanitTextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: IconButton(
+                  icon: Icon(
+                    Icons.edit_note,
+                    size: 22,
+                    color: isDark ? Colors.tealAccent : const Color(0xFF00897B),
                   ),
-                ],
+                  onPressed: widget.onEdit,
+                  tooltip: 'ระบุจำนวนรอบ',
+                ),
               ),
-            ),
+            ],
           ),
-          Positioned(
-            top: 2,
-            right: 2,
-            child: IconButton(
-              icon: Icon(
-                Icons.edit_note,
-                size: isSmallScreen ? 18 : 22,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              onPressed: onEdit,
-              tooltip: 'ระบุจำนวนรอบ',
-              style: IconButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: isSmallScreen ? const Size(28, 28) : const Size(36, 36),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -994,6 +1012,18 @@ class _DistanceStats {
   int total;
 }
 
+IconData _getDistanceIcon(String label) {
+  if (label.contains('0-300')) {
+    return Icons.directions_walk;
+  } else if (label.contains('301-500')) {
+    return Icons.motorcycle;
+  } else if (label.contains('501')) {
+    return Icons.directions_car;
+  } else {
+    return Icons.local_shipping;
+  }
+}
+
 class _DistanceStatCard extends StatelessWidget {
   const _DistanceStatCard({required this.stat});
   final _DistanceStats stat;
@@ -1002,52 +1032,68 @@ class _DistanceStatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool isSmallScreen = screenWidth < 380;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16)),
+    return Container(
+      height: 88,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE0F2F1),
+          width: 1,
+        ),
+      ),
       child: Padding(
-        padding: isSmallScreen
-            ? const EdgeInsets.all(10)
-            : const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              padding: EdgeInsets.all(isSmallScreen ? 6 : 12),
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
+                color: const Color(0xFF00897B).withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.route,
-                size: isSmallScreen ? 18 : 24,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                _getDistanceIcon(stat.label),
+                size: 24,
+                color: const Color(0xFF00897B),
               ),
             ),
-            SizedBox(width: isSmallScreen ? 8 : 16),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     stat.label,
-                    style: (isSmallScreen
-                            ? Theme.of(context).textTheme.bodyMedium
-                            : Theme.of(context).textTheme.titleMedium)
-                        ?.copyWith(fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: kanitTextStyle(
+                      fontSize: isSmallScreen ? 14 : 15,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
                   ),
-                  SizedBox(height: isSmallScreen ? 2 : 4),
+                  const SizedBox(height: 4),
                   Text(
                     '${stat.count} รอบ',
-                    style: (isSmallScreen
-                            ? Theme.of(context).textTheme.bodySmall
-                            : Theme.of(context).textTheme.bodyMedium)
-                        ?.copyWith(
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                    style: kanitTextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
                   ),
                 ],
               ),
@@ -1055,13 +1101,11 @@ class _DistanceStatCard extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               '${stat.total} ฿',
-              style: (isSmallScreen
-                      ? Theme.of(context).textTheme.titleMedium
-                      : Theme.of(context).textTheme.titleLarge)
-                  ?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+              style: kanitTextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF00897B),
+              ),
             ),
           ],
         ),
@@ -1111,136 +1155,118 @@ class _SummaryPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool isSmallScreen = screenWidth < 380;
-    final isCompact = screenWidth < 600;
-
-    final actionButtons = [
-      OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.redAccent.shade100,
-          side: BorderSide(color: Colors.redAccent.shade100, width: 1.5),
-          padding: isSmallScreen 
-              ? const EdgeInsets.symmetric(vertical: 8, horizontal: 10)
-              : null,
-          textStyle: isSmallScreen 
-              ? const TextStyle(fontSize: 12, fontWeight: FontWeight.bold) 
-              : const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        onPressed: canClear ? onClear : null,
-        icon: Icon(
-          Icons.delete_sweep_outlined,
-          size: isSmallScreen ? 16 : null,
-        ),
-        label: const Text('ล้างข้อมูล'),
-      ),
-      FilledButton.icon(
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.teal.shade800,
-          padding: isSmallScreen 
-              ? const EdgeInsets.symmetric(vertical: 8, horizontal: 10)
-              : null,
-          textStyle: isSmallScreen ? const TextStyle(fontSize: 12) : null,
-        ),
-        onPressed: canExport ? onExport : null,
-        icon: Icon(
-          Icons.file_download_outlined,
-          size: isSmallScreen ? 16 : null,
-        ),
-        label: const Text('Export CSV'),
-      ),
-    ];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.teal.shade800, Colors.teal.shade400],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF00897B), Color(0xFF26A69A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Padding(
-        padding: EdgeInsets.all(isSmallScreen ? 12 : (isCompact ? 16 : 24)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Text(
-                    'ยอดรวม $dateLabel',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: (isSmallScreen 
-                        ? Theme.of(context).textTheme.titleMedium 
-                        : Theme.of(context).textTheme.titleLarge)
-                        ?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white.withOpacity(0.9),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'ยอดรวม $dateLabel',
+                        style: kanitTextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withOpacity(0.85),
                         ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: onSelectDate,
+                      child: const Icon(
+                        Icons.edit_calendar,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$totalBaht ฿',
+                  style: kanitTextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
                   ),
                 ),
-                IconButton(
-                  iconSize: isSmallScreen ? 20 : 24,
-                  icon: const Icon(Icons.edit_calendar, color: Colors.white),
-                  onPressed: onSelectDate,
-                  tooltip: 'เลือกวันที่',
+                Text(
+                  'รวม $totalRounds รอบ',
+                  style: kanitTextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: isSmallScreen ? 4 : 8),
-            Text(
-              '$totalBaht ฿',
-              textAlign: TextAlign.center,
-              style: (isSmallScreen 
-                      ? Theme.of(context).textTheme.headlineMedium 
-                      : (isCompact 
-                          ? Theme.of(context).textTheme.headlineLarge 
-                          : Theme.of(context).textTheme.displayMedium))
-                      ?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'รวม $totalRounds รอบ',
-              textAlign: TextAlign.center,
-              style: (isSmallScreen 
-                  ? Theme.of(context).textTheme.bodyMedium 
-                  : Theme.of(context).textTheme.titleMedium)
-                  ?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (canExport)
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF00897B),
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: kanitTextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-            ),
-            SizedBox(height: isSmallScreen ? 12 : 24),
-            if (isCompact)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  actionButtons[0],
-                  SizedBox(height: isSmallScreen ? 6 : 8),
-                  actionButtons[1],
-                ],
-              )
-            else
-              Row(
-                children: [
-                  Expanded(child: actionButtons[0]),
-                  const SizedBox(width: 12),
-                  Expanded(child: actionButtons[1]),
-                ],
-              ),
-          ],
-        ),
+                  onPressed: onExport,
+                  icon: const Icon(Icons.file_download_outlined, size: 16),
+                  label: const Text('Export CSV'),
+                ),
+              if (canClear) ...[
+                const SizedBox(height: 6),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red.shade100,
+                    visualDensity: VisualDensity.compact,
+                    textStyle: kanitTextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: onClear,
+                  icon: const Icon(Icons.delete_sweep_outlined, size: 14),
+                  label: const Text('ล้างข้อมูล'),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1253,18 +1279,84 @@ class _DailySummaryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: const Icon(Icons.calendar_month_outlined),
-        title: Text(_formatDate(summary.date)),
-        subtitle: Text(
-          'รวม ${summary.totalRounds} รอบ • ${summary.recordCount} รายการ',
-        ),
-        trailing: Text(
-          '${summary.totalBaht} บาท',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    final onPrimaryContainer = Theme.of(context).colorScheme.onPrimaryContainer;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -16,
+              top: -16,
+              child: CircleAvatar(
+                radius: 48,
+                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.06),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _formatDate(summary.date),
+                          style: kanitTextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: onPrimaryContainer,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 14,
+                              color: onPrimaryContainer.withOpacity(0.7),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'รวม ${summary.totalRounds} รอบ • ${summary.recordCount} รายการ',
+                              style: kanitTextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: onPrimaryContainer.withOpacity(0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '${summary.totalBaht} ฿',
+                    style: kanitTextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: onPrimaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

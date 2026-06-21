@@ -522,11 +522,11 @@ void main() {
       await pumpApp(tester);
 
       await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
 
       // Tap on the customer tile (should switch to Form Tab)
       await tester.tap(find.text('สมชาย'));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
 
       final phoneField = tester.widget<TextFormField>(
         find.byKey(const Key('customerPhoneField')),

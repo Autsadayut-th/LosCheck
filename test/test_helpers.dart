@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loscheck/database/hive_database.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 const MethodChannel _pathProviderChannel = MethodChannel(
   'plugins.flutter.io/path_provider',
 );
 
 Future<void> configureTestPathProvider() async {
+  GoogleFonts.config.allowRuntimeFetching = false;
   HiveDatabase.isTesting = true;
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(_pathProviderChannel, (call) async {

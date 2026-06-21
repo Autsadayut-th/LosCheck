@@ -1,14 +1,20 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 import 'database/hive_database.dart';
 import 'providers/app_state_provider.dart';
 import 'screens/customer_page.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/trip_fee_page.dart';
 import 'screens/settings_page.dart';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+final bool isTesting = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -103,24 +109,83 @@ class MyAppState extends State<MyApp> {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.teal,
-            primary: Colors.teal.shade700,
+            primary: const Color(0xFF00897B),
             secondary: Colors.amber.shade700,
           ),
           useMaterial3: true,
+          fontFamily: isTesting ? 'Roboto' : GoogleFonts.kanit().fontFamily,
+          textTheme: isTesting
+              ? const TextTheme(
+                  headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  headlineSmall: TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
+                  titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  titleMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  titleSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                  bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+                  bodyMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
+                  bodySmall: TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
+                  labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  labelMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  labelSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
+                )
+              : GoogleFonts.kanitTextTheme().copyWith(
+                  headlineLarge: GoogleFonts.kanit(fontSize: 28, fontWeight: FontWeight.bold),
+                  headlineMedium: GoogleFonts.kanit(fontSize: 28, fontWeight: FontWeight.bold),
+                  headlineSmall: GoogleFonts.kanit(fontSize: 28, fontWeight: FontWeight.w600),
+                  titleLarge: GoogleFonts.kanit(fontSize: 20, fontWeight: FontWeight.bold),
+                  titleMedium: GoogleFonts.kanit(fontSize: 20, fontWeight: FontWeight.w600),
+                  titleSmall: GoogleFonts.kanit(fontSize: 20, fontWeight: FontWeight.w500),
+                  bodyLarge: GoogleFonts.kanit(fontSize: 16, fontWeight: FontWeight.normal),
+                  bodyMedium: GoogleFonts.kanit(fontSize: 16, fontWeight: FontWeight.normal),
+                  bodySmall: GoogleFonts.kanit(fontSize: 14, fontWeight: FontWeight.normal),
+                  labelLarge: GoogleFonts.kanit(fontSize: 16, fontWeight: FontWeight.w500),
+                  labelMedium: GoogleFonts.kanit(fontSize: 14, fontWeight: FontWeight.w500),
+                  labelSmall: GoogleFonts.kanit(fontSize: 14, fontWeight: FontWeight.normal),
+                ),
           appBarTheme: AppBarTheme(
-            backgroundColor: Colors.teal.shade700,
+            backgroundColor: const Color(0xFF00897B),
             foregroundColor: Colors.white,
-            elevation: 4,
-            shadowColor: Colors.black45,
+            elevation: 0,
+            toolbarHeight: 56,
+            titleTextStyle: isTesting
+                ? const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  )
+                : GoogleFonts.kanit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+          ),
+          navigationBarTheme: NavigationBarThemeData(
+            indicatorColor: const Color(0xFFE0F2F1), // Light Teal indicator
+            iconTheme: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return const IconThemeData(color: Color(0xFF004D40));
+              }
+              return const IconThemeData(color: Colors.black54);
+            }),
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final font = isTesting
+                  ? const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
+                  : GoogleFonts.kanit(fontSize: 12, fontWeight: FontWeight.w600);
+              if (states.contains(WidgetState.selected)) {
+                return font.copyWith(color: const Color(0xFF004D40));
+              }
+              return font.copyWith(color: Colors.black54);
+            }),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal.shade700,
+              backgroundColor: const Color(0xFF00897B),
               foregroundColor: Colors.white,
-              elevation: 3,
+              elevation: 1,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
@@ -136,10 +201,70 @@ class MyAppState extends State<MyApp> {
             onSurface: Colors.white,
           ),
           useMaterial3: true,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF1F1F1F),
+          fontFamily: isTesting ? 'Roboto' : GoogleFonts.kanit().fontFamily,
+          textTheme: isTesting
+              ? const TextTheme(
+                  headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                  headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                  headlineSmall: TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: Colors.white),
+                  titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  titleMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                  titleSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white),
+                  bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: Colors.white70),
+                  bodyMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, color: Colors.white70),
+                  bodySmall: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Colors.white60),
+                  labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+                  labelMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
+                  labelSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, color: Colors.white60),
+                )
+              : GoogleFonts.kanitTextTheme(ThemeData.dark().textTheme).copyWith(
+                  headlineLarge: GoogleFonts.kanit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                  headlineMedium: GoogleFonts.kanit(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                  headlineSmall: GoogleFonts.kanit(fontSize: 28, fontWeight: FontWeight.w600, color: Colors.white),
+                  titleLarge: GoogleFonts.kanit(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                  titleMedium: GoogleFonts.kanit(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                  titleSmall: GoogleFonts.kanit(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white),
+                  bodyLarge: GoogleFonts.kanit(fontSize: 16, fontWeight: FontWeight.normal, color: Colors.white70),
+                  bodyMedium: GoogleFonts.kanit(fontSize: 16, fontWeight: FontWeight.normal, color: Colors.white70),
+                  bodySmall: GoogleFonts.kanit(fontSize: 14, fontWeight: FontWeight.normal, color: Colors.white60),
+                  labelLarge: GoogleFonts.kanit(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+                  labelMedium: GoogleFonts.kanit(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
+                  labelSmall: GoogleFonts.kanit(fontSize: 14, fontWeight: FontWeight.normal, color: Colors.white60),
+                ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: const Color(0xFF1F1F1F),
             foregroundColor: Colors.white,
             elevation: 0,
+            toolbarHeight: 56,
+            titleTextStyle: isTesting
+                ? const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  )
+                : GoogleFonts.kanit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+          ),
+          navigationBarTheme: NavigationBarThemeData(
+            indicatorColor: const Color(0xFF004D40), // Dark Teal indicator
+            iconTheme: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return const IconThemeData(color: Colors.white);
+              }
+              return const IconThemeData(color: Colors.white60);
+            }),
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final font = isTesting
+                  ? const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
+                  : GoogleFonts.kanit(fontSize: 12, fontWeight: FontWeight.w600);
+              if (states.contains(WidgetState.selected)) {
+                return font.copyWith(color: Colors.white);
+              }
+              return font.copyWith(color: Colors.white60);
+            }),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
@@ -148,7 +273,7 @@ class MyAppState extends State<MyApp> {
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
@@ -248,11 +373,31 @@ class _HomeShellState extends State<HomeShell> {
         .fold<int>(0, (sum, t) => sum + t.rounds);
     final totalCustomers = appState.customers.length;
 
+    final showTransparentAppBar = _selectedIndex == 0;
+
     return Scaffold(
+      extendBodyBehindAppBar: showTransparentAppBar,
       appBar: AppBar(
+        backgroundColor: showTransparentAppBar 
+            ? Colors.transparent 
+            : null, // fallback to theme
+        flexibleSpace: showTransparentAppBar 
+            ? Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.black.withOpacity(0.3),
+                      Colors.transparent,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              )
+            : null,
         title: const Text(
           'Los Check',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
       body: AnimatedSwitcher(

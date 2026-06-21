@@ -47,20 +47,20 @@ void main() {
 
       // Wait until loading finishes
       int attempts = 0;
-      while (find.text('รายได้').evaluate().isEmpty && attempts < 20) {
+      while (find.text('รายได้วันนี้').evaluate().isEmpty && attempts < 20) {
         await tester.pump(const Duration(milliseconds: 100));
         attempts++;
       }
 
-      if (find.text('รายได้').evaluate().isEmpty) {
+      if (find.text('รายได้วันนี้').evaluate().isEmpty) {
         final textWidgets = tester.widgetList<Text>(find.byType(Text));
         for (final t in textWidgets) {
           print('FOUND TEXT: ${t.data}');
         }
       }
 
-      // Initially on DashboardPage (shows stats like 'รายได้')
-      expect(find.text('รายได้'), findsOneWidget);
+      // Initially on DashboardPage (shows stats like 'รายได้วันนี้')
+      expect(find.text('รายได้วันนี้'), findsOneWidget);
 
       // Navigate to CustomerPage
       await tester.tap(find.descendant(
