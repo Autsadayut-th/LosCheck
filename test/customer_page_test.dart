@@ -543,41 +543,7 @@ void main() {
       expect(addressField.controller?.text, '123 ถนนสุขุมวิท');
     });
 
-    testWidgets('copies CSV to clipboard when export button is tapped', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: CustomerPage())),
-      );
-      await pumpApp(tester);
 
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
-      await tester.enterText(
-        find.byKey(const Key('customerPhoneField')),
-        '0812345678',
-      );
-      await pumpApp(tester);
-      await tester.enterText(
-        find.byKey(const Key('customerNameField')),
-        'สมชาย',
-      );
-      await tester.enterText(
-        find.byKey(const Key('customerAddressField')),
-        '123 ถนนสุขุมวิท',
-      );
-      await pumpApp(tester);
-      await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
-
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
-
-      await tester.tap(find.byIcon(Icons.file_download_outlined));
-      await pumpApp(tester);
-
-      expect(find.byIcon(Icons.file_download_outlined), findsOneWidget);
-    });
 
     testWidgets('displays empty state when no customers', (tester) async {
       await tester.pumpWidget(

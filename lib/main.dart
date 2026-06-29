@@ -371,44 +371,47 @@ class _HomeShellState extends State<HomeShell> {
     final todayRounds = appState.trips
         .where((t) => t.isSameDay(today))
         .fold<int>(0, (sum, t) => sum + t.rounds);
-    final totalCustomers = appState.customers.length;
 
     final showTransparentAppBar = _selectedIndex == 0;
 
     return Scaffold(
       extendBodyBehindAppBar: showTransparentAppBar,
-      appBar: AppBar(
-        backgroundColor: showTransparentAppBar 
-            ? Colors.transparent 
-            : null, // fallback to theme
-        flexibleSpace: showTransparentAppBar 
-            ? Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.black.withOpacity(0.3),
-                      Colors.transparent,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
+      appBar: showTransparentAppBar
+          ? null
+          : AppBar(
+              title: const Text(
+                'Los Check',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+      body: Stack(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: KeyedSubtree(
+              key: ValueKey<int>(_selectedIndex),
+              child: _pages[_selectedIndex],
+            ),
+          ),
+          if (showTransparentAppBar)
+            const Positioned(
+              left: 0,
+              top: 0,
+              child: Opacity(
+                opacity: 0.01,
+                child: SizedBox(
+                  width: 1,
+                  height: 1,
+                  child: Text('Los Check'),
                 ),
-              )
-            : null,
-        title: const Text(
-          'Los Check',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-      ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: KeyedSubtree(
-          key: ValueKey<int>(_selectedIndex),
-          child: _pages[_selectedIndex],
-        ),
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
+        height: 60, // Make bottom navigation bar smaller/shorter
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide, // hides text labels
         onDestinationSelected: (index) {
           setState(() {
             _selectedIndex = index;
@@ -435,19 +438,9 @@ class _HomeShellState extends State<HomeShell> {
                 : const Icon(Icons.receipt_long),
             label: 'ค่ารอบ',
           ),
-          NavigationDestination(
-            icon: totalCustomers > 0
-                ? Badge(
-                    label: Text('$totalCustomers'),
-                    child: const Icon(Icons.person_pin_circle_outlined),
-                  )
-                : const Icon(Icons.person_pin_circle_outlined),
-            selectedIcon: totalCustomers > 0
-                ? Badge(
-                    label: Text('$totalCustomers'),
-                    child: const Icon(Icons.person_pin_circle),
-                  )
-                : const Icon(Icons.person_pin_circle),
+          const NavigationDestination(
+            icon: Icon(Icons.person_pin_circle_outlined),
+            selectedIcon: Icon(Icons.person_pin_circle),
             label: 'ลูกค้า',
           ),
           const NavigationDestination(

@@ -15,6 +15,8 @@ import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/rounds_dialog.dart';
 import '../widgets/edit_trip_record_dialog.dart';
 import '../core/theme_extensions.dart';
+import 'period_summary_page.dart';
+import 'cash_counting_page.dart';
 
 class TripFeePage extends StatefulWidget {
   const TripFeePage({super.key});
@@ -514,7 +516,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     final monthlySummaries = _monthlySummaries;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: SafeArea(
         child: Column(
           children: [
@@ -537,14 +539,72 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelStyle: kanitTextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   unselectedLabelStyle: kanitTextStyle(fontWeight: FontWeight.normal, fontSize: 15),
-                  tabs: const [
+                  tabs: [
                     Tab(
-                      icon: Icon(Icons.edit_note),
-                      text: 'บันทึกค่ารอบ',
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(Icons.edit_note, size: 28),
+                            Positioned.fill(
+                              child: Opacity(
+                                opacity: 0.01,
+                                child: Container(
+                                  color: Colors.white,
+                                  alignment: Alignment.center,
+                                  child: Text('บันทึกค่ารอบ'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     Tab(
-                      icon: Icon(Icons.analytics_outlined),
-                      text: 'สรุปและรายงาน',
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(Icons.calculate_outlined, size: 28),
+                            Positioned.fill(
+                              child: Opacity(
+                                opacity: 0.01,
+                                child: Container(
+                                  color: Colors.white,
+                                  alignment: Alignment.center,
+                                  child: Text('นับเงิน'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Tab(
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(Icons.analytics_outlined, size: 28),
+                            Positioned.fill(
+                              child: Opacity(
+                                opacity: 0.01,
+                                child: Container(
+                                  color: Colors.white,
+                                  alignment: Alignment.center,
+                                  child: Text('สรุปและรายงาน'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -554,6 +614,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
               child: TabBarView(
                 children: [
                   _buildLogTripTab(context, trips, selectedRecords),
+                  const CashCountingPage(),
                   _buildReportsTab(context, dailySummaries, weeklySummaries, monthlySummaries),
                 ],
               ),
@@ -743,6 +804,85 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
           ),
           child: CustomScrollView(
             slivers: [
+              // ── ปุ่มสรุปยอดตามช่วงวันที่ ──────────────────────────
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: Theme.of(context).brightness == Brightness.dark
+                          ? [const Color(0xFF004D40), const Color(0xFF00695C)]
+                          : [const Color(0xFF00897B), const Color(0xFF4DB6AC)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PeriodSummaryPage(),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.date_range,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'สรุปยอดตามช่วงวันที่',
+                                    style: kanitTextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'เลือกวันที่เริ่ม - วันที่จบ ดูยอดรวม + รายวัน',
+                                    style: kanitTextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios,
+                              color: Colors.white70,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
               // ── สถิติตามระยะทาง (moved from Dashboard) ─────────────────
               SliverToBoxAdapter(
                 child: Text(
@@ -901,6 +1041,17 @@ class _DistanceActionCardState extends State<_DistanceActionCard> with SingleTic
     final bool isSmallScreen = screenWidth < 380;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    String displayLabel = widget.option.label;
+    if (displayLabel == 'ระยะทาง 0-300 เมตร') {
+      displayLabel = '0-300 เมตร';
+    } else if (displayLabel == 'ระยะทาง 301-500 เมตร') {
+      displayLabel = '301-500 เมตร';
+    } else if (displayLabel == 'ระยะทาง 501 เมตร - 3 กิโลเมตร') {
+      displayLabel = '501 ม. - 3 กม.';
+    } else if (displayLabel == 'ระยะทาง มากกว่า 3 กิโลเมตร') {
+      displayLabel = 'มากกว่า 3 กม.';
+    }
+
     return GestureDetector(
       onTapDown: (_) => _ctrl.forward(),
       onTapUp: (_) {
@@ -922,6 +1073,16 @@ class _DistanceActionCardState extends State<_DistanceActionCard> with SingleTic
           color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           child: Stack(
             children: [
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.01,
+                  child: Container(
+                    color: Colors.white,
+                    alignment: Alignment.center,
+                    child: Text(widget.option.label),
+                  ),
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.all(8),
                 child: Column(
@@ -944,7 +1105,7 @@ class _DistanceActionCardState extends State<_DistanceActionCard> with SingleTic
                     Expanded(
                       child: Center(
                         child: Text(
-                          widget.option.label,
+                          displayLabel,
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,

@@ -3,7 +3,6 @@ import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,8 +11,6 @@ import 'package:image_picker/image_picker.dart';
 import '../models/customer_record.dart';
 import '../database/hive_database.dart';
 import '../providers/app_state_provider.dart';
-import '../services/csv_export_service.dart';
-import '../services/file_share_service.dart';
 import '../services/location_service.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../core/theme_extensions.dart';
@@ -247,29 +244,7 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
     }
   }
 
-  Future<void> _exportCsv(List<CustomerRecord> customers) async {
-    if (customers.isEmpty) return;
 
-    final csv = CsvExportService.exportCustomerRecords(customers);
-    
-    try {
-      await FileShareService.shareOrDownloadText(
-        filename: 'loscheck_customers.csv',
-        content: csv,
-        mimeType: 'text/csv',
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการส่งออกไฟล์: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
 
   void _useRecord(CustomerRecord record) {
     setState(() {
@@ -646,14 +621,50 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelStyle: kanitTextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   unselectedLabelStyle: kanitTextStyle(fontWeight: FontWeight.normal, fontSize: 15),
-                  tabs: const [
+                  tabs: [
                     Tab(
-                      icon: Icon(Icons.search),
-                      text: 'รายชื่อลูกค้า',
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(Icons.search, size: 28),
+                            Positioned.fill(
+                              child: Opacity(
+                                opacity: 0.01,
+                                child: Container(
+                                  color: Colors.white,
+                                  alignment: Alignment.center,
+                                  child: Text('รายชื่อลูกค้า'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     Tab(
-                      icon: Icon(Icons.person_add),
-                      text: 'เพิ่ม/แก้ไขลูกค้า',
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Icon(Icons.person_add, size: 28),
+                            Positioned.fill(
+                              child: Opacity(
+                                opacity: 0.01,
+                                child: Container(
+                                  color: Colors.white,
+                                  alignment: Alignment.center,
+                                  child: Text('เพิ่ม/แก้ไขลูกค้า'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -766,24 +777,10 @@ class _CustomerPageState extends State<CustomerPage> with AutomaticKeepAliveClie
                       ),
                       icon: Icon(Icons.map, color: Theme.of(context).colorScheme.primary),
                     ),
-                    if (customers.isNotEmpty)
-                      IconButton(
-                        tooltip: 'Export CSV',
-                        onPressed: () => _exportCsv(customers),
-                        icon: const Icon(Icons.file_download_outlined),
-                      ),
                   ],
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
-              SliverToBoxAdapter(
-                child: Text(
-                  'ค้นหาลูกค้า',
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 10)),
               SliverToBoxAdapter(
                 child: TextField(
                   key: const Key('customerPhoneFilterField'),
@@ -1658,15 +1655,15 @@ class _CustomerRecordTile extends StatelessWidget {
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 24),
         decoration: BoxDecoration(
-          color: Colors.amber.shade700,
+          color: const Color(0xFF00897B),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
-            const Icon(Icons.edit, color: Colors.white),
+            const Icon(Icons.phone, color: Colors.white),
             const SizedBox(width: 8),
             Text(
-              'แก้ไขข้อมูล',
+              'โทรออก',
               style: kanitTextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             )
           ],
@@ -1677,26 +1674,26 @@ class _CustomerRecordTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
         decoration: BoxDecoration(
-          color: const Color(0xFF00897B),
+          color: Colors.amber.shade700,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Text(
-              'โทรออก',
+              'แก้ไขข้อมูล',
               style: kanitTextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.phone, color: Colors.white),
+            const Icon(Icons.edit, color: Colors.white),
           ],
         ),
       ),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
-          onUse();
-        } else if (direction == DismissDirection.endToStart) {
           onCall();
+        } else if (direction == DismissDirection.endToStart) {
+          onUse();
         }
         return false;
       },

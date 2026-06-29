@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loscheck/database/hive_database.dart';
 import 'package:loscheck/models/customer_record.dart';
-import 'package:loscheck/screens/route_planning_page.dart';
+import 'package:loscheck/screens/route_planning/route_planning_page.dart';
 
 import 'test_helpers.dart';
 
@@ -51,99 +51,113 @@ void main() {
       expect(find.textContaining('เริ่มนำทาง (0 จุด'), findsOneWidget);
     });
 
-    testWidgets('displays customers list and allows selection and starting navigation', (tester) async {
-      // Insert test customers
-      final now = DateTime.now();
-      await appDatabase.insertCustomer(CustomerRecord(
-        phone: '0812345678',
-        name: 'สมชาย',
-        address: '123 สุขุมวิท',
-        createdAt: now,
-        latitude: 13.7563,
-        longitude: 100.5018,
-      ));
-      await appDatabase.insertCustomer(CustomerRecord(
-        phone: '0898765432',
-        name: 'มานี',
-        address: '456 สีลม',
-        createdAt: now,
-        latitude: 13.7263,
-        longitude: 100.5218,
-      ));
+    testWidgets(
+      'displays customers list and allows selection and starting navigation',
+      (tester) async {
+        // Insert test customers
+        final now = DateTime.now();
+        await appDatabase.insertCustomer(
+          CustomerRecord(
+            phone: '0812345678',
+            name: 'สมชาย',
+            address: '123 สุขุมวิท',
+            createdAt: now,
+            latitude: 13.7563,
+            longitude: 100.5018,
+          ),
+        );
+        await appDatabase.insertCustomer(
+          CustomerRecord(
+            phone: '0898765432',
+            name: 'มานี',
+            address: '456 สีลม',
+            createdAt: now,
+            latitude: 13.7263,
+            longitude: 100.5218,
+          ),
+        );
 
-      await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: RoutePlanningPage())),
-      );
-      await pumpApp(tester);
+        await tester.pumpWidget(
+          const MaterialApp(home: Scaffold(body: RoutePlanningPage())),
+        );
+        await pumpApp(tester);
 
-      // Verify customers are rendered
-      expect(find.text('สมชาย'), findsOneWidget);
-      expect(find.text('มานี'), findsOneWidget);
+        // Verify customers are rendered
+        expect(find.text('สมชาย'), findsOneWidget);
+        expect(find.text('มานี'), findsOneWidget);
 
-      // Select both customers (tap checkboxes)
-      final checkboxFinder = find.byType(Checkbox);
-      expect(checkboxFinder, findsNWidgets(2));
-      
-      await tester.tap(checkboxFinder.at(0));
-      await tester.pumpAndSettle();
-      await tester.tap(checkboxFinder.at(1));
-      await tester.pumpAndSettle();
+        // Select both customers (tap checkboxes)
+        final checkboxFinder = find.byType(Checkbox);
+        expect(checkboxFinder, findsNWidgets(2));
 
-      // Verify "เริ่มนำทาง (2 จุด)" button is enabled
-      expect(find.textContaining('เริ่มนำทาง (2 จุด'), findsOneWidget);
+        await tester.tap(checkboxFinder.at(0));
+        await tester.pumpAndSettle();
+        await tester.tap(checkboxFinder.at(1));
+        await tester.pumpAndSettle();
 
-      // Start navigation
-      await tester.tap(find.textContaining('เริ่มนำทาง (2 จุด'));
-      await tester.pumpAndSettle();
+        // Verify "เริ่มนำทาง (2 จุด)" button is enabled
+        expect(find.textContaining('เริ่มนำทาง (2 จุด'), findsOneWidget);
 
-      // Verify navigation screen is loaded
-      expect(find.text('คิวเส้นทางจัดส่ง'), findsOneWidget);
-      expect(find.text('จุดหมายที่ 0 / 2'), findsOneWidget);
-      expect(find.text('จุดหมายปัจจุบัน (Active)'), findsOneWidget);
-      expect(find.byKey(const Key('jobCompletedButton')), findsOneWidget);
-      
-      // Tap job completed for the first customer
-      await tester.tap(find.byKey(const Key('jobCompletedButton')));
-      await tester.pumpAndSettle();
+        // Start navigation
+        await tester.tap(find.textContaining('เริ่มนำทาง (2 จุด'));
+        await tester.pumpAndSettle();
 
-      // Verify progress updated
-      expect(find.text('จุดหมายที่ 1 / 2'), findsOneWidget);
+        // Verify navigation screen is loaded
+        expect(find.text('คิวเส้นทางจัดส่ง'), findsOneWidget);
+        expect(find.text('จุดหมายที่ 0 / 2'), findsOneWidget);
+        expect(find.text('จุดหมายปัจจุบัน (Active)'), findsOneWidget);
+        expect(find.byKey(const Key('jobCompletedButton')), findsOneWidget);
 
-      // Tap job completed for the second customer
-      await tester.tap(find.byKey(const Key('jobCompletedButton')));
-      await tester.pumpAndSettle();
+        // Tap job completed for the first customer
+        await tester.tap(find.byKey(const Key('jobCompletedButton')));
+        await tester.pumpAndSettle();
 
-      // Verify completion screen
-      expect(find.text('ยินดีด้วย!'), findsOneWidget);
-      expect(find.text('คุณเดินทางเสร็จสิ้นครบทุกจุดหมายเรียบร้อยแล้ว'), findsOneWidget);
-      expect(find.text('กลับหน้าวางแผนใหม่'), findsOneWidget);
+        // Verify progress updated
+        expect(find.text('จุดหมายที่ 1 / 2'), findsOneWidget);
 
-      // Reset
-      await tester.tap(find.text('กลับหน้าวางแผนใหม่'));
-      await tester.pumpAndSettle();
+        // Tap job completed for the second customer
+        await tester.tap(find.byKey(const Key('jobCompletedButton')));
+        await tester.pumpAndSettle();
 
-      // Should be back to setup screen
-      expect(find.text('วางแผนเส้นทางนำทาง'), findsOneWidget);
-    });
+        // Verify completion screen
+        expect(find.text('ยินดีด้วย!'), findsOneWidget);
+        expect(
+          find.text('คุณเดินทางเสร็จสิ้นครบทุกจุดหมายเรียบร้อยแล้ว'),
+          findsOneWidget,
+        );
+        expect(find.text('กลับหน้าวางแผนใหม่'), findsOneWidget);
+
+        // Reset
+        await tester.tap(find.text('กลับหน้าวางแผนใหม่'));
+        await tester.pumpAndSettle();
+
+        // Should be back to setup screen
+        expect(find.text('วางแผนเส้นทางนำทาง'), findsOneWidget);
+      },
+    );
 
     testWidgets('respects search filter on setup screen', (tester) async {
       final now = DateTime.now();
-      await appDatabase.insertCustomer(CustomerRecord(
-        phone: '0812345678',
-        name: 'สมชาย',
-        address: '123 สุขุมวิท',
-        createdAt: now,
-        latitude: 13.7563,
-        longitude: 100.5018,
-      ));
-      await appDatabase.insertCustomer(CustomerRecord(
-        phone: '0898765432',
-        name: 'มานี',
-        address: '456 สีลม',
-        createdAt: now,
-        latitude: 13.7263,
-        longitude: 100.5218,
-      ));
+      await appDatabase.insertCustomer(
+        CustomerRecord(
+          phone: '0812345678',
+          name: 'สมชาย',
+          address: '123 สุขุมวิท',
+          createdAt: now,
+          latitude: 13.7563,
+          longitude: 100.5018,
+        ),
+      );
+      await appDatabase.insertCustomer(
+        CustomerRecord(
+          phone: '0898765432',
+          name: 'มานี',
+          address: '456 สีลม',
+          createdAt: now,
+          latitude: 13.7263,
+          longitude: 100.5218,
+        ),
+      );
 
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: RoutePlanningPage())),
@@ -158,7 +172,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('สมชาย'), findsNothing);
-      expect(find.text('มานี'), findsNWidgets(2)); // One in search text field, one in the customer tile
+      expect(
+        find.text('มานี'),
+        findsNWidgets(2),
+      ); // One in search text field, one in the customer tile
     });
   });
 }

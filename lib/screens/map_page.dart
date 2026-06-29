@@ -10,7 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/customer_record.dart';
 import '../providers/app_state_provider.dart';
 import '../services/location_service.dart';
-import 'route_planning_page.dart';
+import 'route_planning/route_planning_page.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
