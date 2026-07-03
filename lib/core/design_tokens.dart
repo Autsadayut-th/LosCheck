@@ -151,15 +151,15 @@ class DesignTokens {
   /// COLOR PALETTE
   /// ═══════════════════════════════════════════════════════════════════════════
 
-  /// Primary Color (Teal)
-  static const Color primaryLight = Color(0xFFB2DFDB); // Teal 100
-  static const Color primaryMain = Color(0xFF00897B); // Teal 700
-  static const Color primaryDark = Color(0xFF004D40); // Teal 900
+  /// Primary Color (Custom Teal)
+  static const Color primaryLight = Color(0xFFB2E8E5); // Light variant
+  static const Color primaryMain = Color(0xFF33BCB4); // Primary Main
+  static const Color primaryDark = Color(0xFF1A8A82); // Dark variant
 
-  /// Secondary Color (Amber)
-  static const Color secondaryLight = Color(0xFFFFF8E1); // Amber 50
-  static const Color secondaryMain = Color(0xFFFBC02D); // Amber 700
-  static const Color secondaryDark = Color(0xFFF57F17); // Amber 900
+  /// Secondary Color (Custom Yellow/Amber)
+  static const Color secondaryLight = Color(0xFFFFF7D6); // Light variant
+  static const Color secondaryMain = Color(0xFFF9BE00); // Secondary Main
+  static const Color secondaryDark = Color(0xFFD4A200); // Dark variant
 
   /// Success (Green)
   static const Color successLight = Color(0xFFC8E6C9);

@@ -96,7 +96,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                       ),
                     ],
                     border: Border.all(
-                      color: isDark ? Colors.white12 : const Color(0xFFE0F2F1),
+                      color: isDark ? Colors.white12 : const Color(0xFFE0F5F4),
                       width: 1.0,
                     ),
                   ),
@@ -106,19 +106,19 @@ class RoutePlanningSetupView extends StatelessWidget {
                       SummaryPillItem(
                         icon: Icons.people_outline,
                         value: '$selectedCount จุด',
-                        color: const Color(0xFF00897B),
+                        color: const Color(0xFF33BCB4),
                       ),
                       pillDivider(isDark),
                       SummaryPillItem(
                         icon: Icons.directions_car_outlined,
                         value: '${totalDist.toStringAsFixed(1)} กม.',
-                        color: const Color(0xFF00897B),
+                        color: const Color(0xFF33BCB4),
                       ),
                       pillDivider(isDark),
                       SummaryPillItem(
                         icon: Icons.access_time,
                         value: '$estimatedMinutes น.',
-                        color: const Color(0xFF00897B),
+                        color: const Color(0xFF33BCB4),
                       ),
                     ],
                   ),
@@ -129,7 +129,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                   heroTag: 'manualFetchGpsSetup',
                   onPressed: state.isFetchingLocation ? null : state.manualFetchGPS,
                   backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
-                  foregroundColor: const Color(0xFF00897B),
+                  foregroundColor: const Color(0xFF33BCB4),
                   elevation: 4,
                   child: state.isFetchingLocation
                       ? const SizedBox(
@@ -138,7 +138,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Color(0xFF00897B),
+                              Color(0xFF33BCB4),
                             ),
                           ),
                         )
@@ -151,11 +151,11 @@ class RoutePlanningSetupView extends StatelessWidget {
           // 3. Draggable Scrollable Bottom Sheet containing Customer List & Search
           Positioned.fill(
             child: DraggableScrollableSheet(
-              initialChildSize: 0.32,
-              minChildSize: 0.32,
+              initialChildSize: 0.26,
+              minChildSize: 0.26,
               maxChildSize: 0.85,
               snap: true,
-              snapSizes: const [0.32, 0.85],
+              snapSizes: const [0.26, 0.85],
               builder: (BuildContext context, ScrollController scrollController) {
                 return Container(
                   decoration: BoxDecoration(
@@ -171,7 +171,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                       ),
                     ],
                     border: Border.all(
-                      color: isDark ? Colors.white12 : const Color(0xFFE0F2F1),
+                      color: isDark ? Colors.white12 : const Color(0xFFE0F5F4),
                       width: 1.0,
                     ),
                   ),
@@ -188,7 +188,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                             child: Container(
                               width: 36,
                               height: 4,
-                              margin: const EdgeInsets.symmetric(vertical: 12),
+                              margin: const EdgeInsets.symmetric(vertical: 8),
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? Colors.white30
@@ -203,7 +203,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Container(
-                                  height: 44,
+                                  height: 38,
                                   decoration: BoxDecoration(
                                     color: isDark
                                         ? const Color(0xFF2C2C2C)
@@ -234,7 +234,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 10),
 
                           // Action Button
                           AnimatedGradientButton(
@@ -245,17 +245,54 @@ class RoutePlanningSetupView extends StatelessWidget {
                                 ? () => state.startNavigation(customers)
                                 : null,
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
 
-                          // List of customers header
-                          Text(
-                            'เลือกลูกค้าจัดส่ง',
-                            style: kanitTextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          // List of customers header with Select/Deselect All action
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'เลือกลูกค้าจัดส่ง',
+                                style: kanitTextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (customers.any((c) => c.latitude != null && c.longitude != null))
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(0, 0),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  icon: Icon(
+                                    selectedCount == customers.where((c) => c.latitude != null && c.longitude != null).length
+                                        ? Icons.deselect_outlined
+                                        : Icons.select_all_outlined,
+                                    size: 16,
+                                    color: const Color(0xFF33BCB4),
+                                  ),
+                                  label: Text(
+                                    selectedCount == customers.where((c) => c.latitude != null && c.longitude != null).length
+                                        ? 'ล้างทั้งหมด'
+                                        : 'เลือกทั้งหมด',
+                                    style: kanitTextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF33BCB4),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    final allCoords = customers
+                                        .where((c) => c.latitude != null && c.longitude != null)
+                                        .toList();
+                                    final isAllSelected = selectedCount == allCoords.length;
+                                    state.toggleAllCustomers(allCoords, !isAllSelected);
+                                  },
+                                ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
 
                           // Customer list
                           filteredCustomers.isEmpty
@@ -376,7 +413,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                                           duration: DesignTokens.durationFast,
                                           curve: Curves.easeOut,
                                           margin: const EdgeInsets.only(
-                                            bottom: 12,
+                                            bottom: 8,
                                           ),
                                           decoration: BoxDecoration(
                                             color: isSelected
@@ -413,13 +450,13 @@ class RoutePlanningSetupView extends StatelessWidget {
                                                 : DesignTokens.shadowXs,
                                           ),
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
+                                            horizontal: 10,
+                                            vertical: 8,
                                           ),
                                           child: Row(
                                             children: [
                                               CircleAvatar(
-                                                radius: 20,
+                                                radius: 17,
                                                 backgroundColor: hasCoords
                                                     ? (isSelected
                                                           ? DesignTokens
@@ -437,7 +474,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                                                             .toUpperCase()
                                                       : '?',
                                                   style: kanitTextStyle(
-                                                    fontSize: 14,
+                                                    fontSize: 13,
                                                     fontWeight: FontWeight.bold,
                                                     color: hasCoords
                                                         ? (isSelected
@@ -450,7 +487,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                                                   ),
                                                 ),
                                               ),
-                                              const SizedBox(width: 12),
+                                              const SizedBox(width: 10),
                                               Expanded(
                                                 child: Column(
                                                   crossAxisAlignment:
@@ -463,7 +500,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                                                             customer.name,
                                                             style:
                                                                 kanitTextStyle(
-                                                                  fontSize: 15,
+                                                                  fontSize: 14,
                                                                   fontWeight:
                                                                       FontWeight
                                                                           .bold,
@@ -486,12 +523,12 @@ class RoutePlanningSetupView extends StatelessWidget {
                                                         ),
                                                         const SizedBox(width: 8),
                                                         // Compact Status Badge with icon
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                horizontal: 8,
-                                                                vertical: 2,
-                                                              ),
+                                                         Container(
+                                                           padding:
+                                                               const EdgeInsets.symmetric(
+                                                                 horizontal: 6,
+                                                                 vertical: 1.5,
+                                                               ),
                                                           decoration: BoxDecoration(
                                                             color: hasCoords
                                                                 ? DesignTokens

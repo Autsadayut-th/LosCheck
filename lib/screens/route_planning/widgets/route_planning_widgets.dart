@@ -20,7 +20,7 @@ class CompletionStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: const Color(0xFF00897B), size: 28),
+        Icon(icon, color: const Color(0xFF33BCB4), size: 28),
         const SizedBox(height: 6),
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 2),
@@ -62,7 +62,7 @@ class QueueItemCard extends StatelessWidget {
         side: BorderSide(
           color: isDark
               ? Colors.white.withValues(alpha: 0.08)
-              : const Color(0xFFE0F2F1),
+              : const Color(0xFFE0F5F4),
           width: 1,
         ),
       ),
@@ -70,12 +70,12 @@ class QueueItemCard extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFF00897B).withValues(alpha: 0.1),
+          backgroundColor: const Color(0xFF33BCB4).withValues(alpha: 0.1),
           child: Text(
             '$index',
             style: kanitTextStyle(
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF00897B),
+              color: const Color(0xFF33BCB4),
             ),
           ),
         ),
@@ -99,14 +99,14 @@ class QueueItemCard extends StatelessWidget {
                 const Icon(
                   Icons.location_on_outlined,
                   size: 12,
-                  color: Color(0xFF00897B),
+                  color: Color(0xFF33BCB4),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   distanceLabel,
                   style: kanitTextStyle(
                     fontSize: 11,
-                    color: const Color(0xFF00897B),
+                    color: const Color(0xFF33BCB4),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -281,9 +281,9 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           width: double.infinity,
-          height: 56,
+          height: 42,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(14),
             gradient: widget.isEnabled
                 ? LinearGradient(
                     colors: const [
@@ -313,13 +313,13 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             child: Text(
               widget.label,
               style: kanitTextStyle(
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: widget.isEnabled
                     ? Colors.white

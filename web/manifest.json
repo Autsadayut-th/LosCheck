@@ -4,7 +4,7 @@
     "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",
-    "theme_color": "#1e6b5f",
+    "theme_color": "#33bcb4",
     "description": "แอปพลิเคชันสำหรับบันทึกค่ารอบและข้อมูลลูกค้า",
     "orientation": "portrait-primary",
     "scope": "/",

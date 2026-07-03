@@ -1,23 +1,31 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
-import '../models/distance_option.dart';
-import '../models/trip_record.dart';
-import '../database/hive_database.dart';
-import '../providers/app_state_provider.dart';
-import '../services/csv_export_service.dart';
-import '../services/file_share_service.dart';
-import '../widgets/confirm_delete_dialog.dart';
-import '../widgets/rounds_dialog.dart';
-import '../widgets/edit_trip_record_dialog.dart';
-import '../core/theme_extensions.dart';
-import 'period_summary_page.dart';
-import 'cash_counting_page.dart';
+import '../../models/distance_option.dart';
+import '../../models/trip_record.dart';
+import '../../database/hive_database.dart';
+import '../../providers/app_state_provider.dart';
+import '../../services/csv_export_service.dart';
+import '../../services/file_share_service.dart';
+import '../../widgets/confirm_delete_dialog.dart';
+import '../../widgets/rounds_dialog.dart';
+import '../../widgets/edit_trip_record_dialog.dart';
+import '../../core/theme_extensions.dart';
+import '../period_summary_page.dart';
+import '../cash_counting_page.dart';
 
+import 'models/trip_fee_models.dart';
+import 'widgets/summary_panel.dart';
+import 'widgets/distance_action_card.dart';
+import 'widgets/record_tile.dart';
+import 'widgets/daily_summary_tile.dart';
+import 'widgets/period_summary_tile.dart';
+import 'widgets/distance_stat_card.dart';
+
+/// หน้าหลักระบบบันทึกค่ารอบรถ (Trip Fee Screen Entrypoint) จัดการข้อมูลและแท็บการทำงาน
 class TripFeePage extends StatefulWidget {
   const TripFeePage({super.key});
 
@@ -37,9 +45,9 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   ];
 
   List<TripRecord> _selectedDateRecords = [];
-  List<_DailyTripSummary> _dailySummaries = [];
-  List<_PeriodSummary> _weeklySummaries = [];
-  List<_PeriodSummary> _monthlySummaries = [];
+  List<DailyTripSummary> _dailySummaries = [];
+  List<PeriodSummary> _weeklySummaries = [];
+  List<PeriodSummary> _monthlySummaries = [];
   DateTime _selectedDate = DateTime.now();
   int _selectedDateTotal = 0;
   int _selectedDateRounds = 0;
@@ -48,7 +56,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
   List<TripRecord>? _lastComputedTrips;
   DateTime? _lastComputedSelectedDate;
 
-  List<_PeriodSummary> _buildPeriodSummaries(
+  List<PeriodSummary> _buildPeriodSummaries(
     List<TripRecord> trips,
     DateTime Function(DateTime) keyFn,
   ) {
@@ -59,7 +67,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     }
     final summaries = grouped.entries.map((entry) {
       final records = entry.value;
-      return _PeriodSummary(
+      return PeriodSummary(
         periodStart: entry.key,
         totalBaht: records.fold<int>(0, (t, r) => t + r.totalBaht),
         totalRounds: records.fold<int>(0, (t, r) => t + r.rounds),
@@ -69,7 +77,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     return summaries;
   }
 
-  List<_DailyTripSummary> _buildDailySummaries(List<TripRecord> trips) {
+  List<DailyTripSummary> _buildDailySummaries(List<TripRecord> trips) {
     final summariesByDate = <DateTime, List<TripRecord>>{};
 
     for (final record in trips) {
@@ -83,7 +91,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
 
     final summaries = summariesByDate.entries.map((entry) {
       final records = entry.value;
-      return _DailyTripSummary(
+      return DailyTripSummary(
         date: entry.key,
         totalBaht: records.fold<int>(
           0,
@@ -132,8 +140,6 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     );
   }
 
-
-
   Future<void> _logInstantTrip(DistanceOption option) async {
     final now = DateTime.now();
     final createdAt = DateTime(
@@ -178,7 +184,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
               }
             },
           ),
-          duration: const Duration(milliseconds: 2500),
+          duration: const Duration(seconds: 1),
         ),
       );
     } catch (e) {
@@ -533,9 +539,9 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                   ),
                 ),
                 child: TabBar(
-                  labelColor: const Color(0xFF00897B),
+                  labelColor: const Color(0xFF33BCB4),
                   unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                  indicatorColor: const Color(0xFF00897B),
+                  indicatorColor: const Color(0xFF33BCB4),
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelStyle: kanitTextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   unselectedLabelStyle: kanitTextStyle(fontWeight: FontWeight.normal, fontSize: 15),
@@ -547,14 +553,14 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            Icon(Icons.edit_note, size: 28),
+                            const Icon(Icons.edit_note, size: 28),
                             Positioned.fill(
                               child: Opacity(
                                 opacity: 0.01,
                                 child: Container(
                                   color: Colors.white,
                                   alignment: Alignment.center,
-                                  child: Text('บันทึกค่ารอบ'),
+                                  child: const Text('บันทึกค่ารอบ'),
                                 ),
                               ),
                             ),
@@ -569,14 +575,14 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            Icon(Icons.calculate_outlined, size: 28),
+                            const Icon(Icons.calculate_outlined, size: 28),
                             Positioned.fill(
                               child: Opacity(
                                 opacity: 0.01,
                                 child: Container(
                                   color: Colors.white,
                                   alignment: Alignment.center,
-                                  child: Text('นับเงิน'),
+                                  child: const Text('นับเงิน'),
                                 ),
                               ),
                             ),
@@ -591,14 +597,14 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            Icon(Icons.analytics_outlined, size: 28),
+                            const Icon(Icons.analytics_outlined, size: 28),
                             Positioned.fill(
                               child: Opacity(
                                 opacity: 0.01,
                                 child: Container(
                                   color: Colors.white,
                                   alignment: Alignment.center,
-                                  child: Text('สรุปและรายงาน'),
+                                  child: const Text('สรุปและรายงาน'),
                                 ),
                               ),
                             ),
@@ -689,14 +695,14 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                   ),
                 ),
               SliverToBoxAdapter(
-                child: _SummaryPanel(
+                child: SummaryPanel(
                   totalBaht: _selectedDateTotal,
                   totalRounds: _selectedDateRounds,
                   canClear: selectedRecords.isNotEmpty,
                   canExport: trips.isNotEmpty,
                   onClear: _clearSelectedDate,
                   onExport: () => _exportCsv(trips),
-                  dateLabel: _DailySummaryTile._formatDate(
+                  dateLabel: DailySummaryTile.formatDate(
                     _selectedDate,
                   ),
                   onSelectDate: _selectDate,
@@ -725,7 +731,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                 ),
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final option = _options[index];
-                  return _DistanceActionCard(
+                  return DistanceActionCard(
                     option: option,
                     onTap: () => _logInstantTrip(option),
                     onEdit: () => _logCustomTrip(option),
@@ -735,7 +741,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
               SliverToBoxAdapter(child: SizedBox(height: isSmallScreen ? 18 : 32)),
               SliverToBoxAdapter(
                 child: Text(
-                  'ประวัติ ${_DailySummaryTile._formatDate(_selectedDate)}',
+                  'ประวัติ ${DailySummaryTile.formatDate(_selectedDate)}',
                   style: (isSmallScreen 
                       ? Theme.of(context).textTheme.titleMedium 
                       : Theme.of(context).textTheme.titleLarge)
@@ -759,7 +765,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                     index,
                   ) {
                     final record = selectedRecords[index];
-                    return _RecordTile(
+                    return RecordTile(
                       record: record,
                       onEdit: () => _editRecord(record),
                       onDelete: () => _deleteRecord(record),
@@ -774,12 +780,12 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
     );
   }
 
-  List<_DistanceStats> _buildDistanceStats(List<TripRecord> trips) {
-    final stats = <String, _DistanceStats>{};
+  List<DistanceStats> _buildDistanceStats(List<TripRecord> trips) {
+    final stats = <String, DistanceStats>{};
     for (final record in trips) {
       stats.putIfAbsent(
         record.distanceLabel,
-        () => _DistanceStats(label: record.distanceLabel, count: 0, total: 0),
+        () => DistanceStats(label: record.distanceLabel, count: 0, total: 0),
       );
       stats[record.distanceLabel]!.count += record.rounds;
       stats[record.distanceLabel]!.total += record.totalBaht;
@@ -789,9 +795,9 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
 
   Widget _buildReportsTab(
     BuildContext context,
-    List<_DailyTripSummary> dailySummaries,
-    List<_PeriodSummary> weeklySummaries,
-    List<_PeriodSummary> monthlySummaries,
+    List<DailyTripSummary> dailySummaries,
+    List<PeriodSummary> weeklySummaries,
+    List<PeriodSummary> monthlySummaries,
   ) {
     final distanceStats = _buildDistanceStats(_lastComputedTrips ?? []);
 
@@ -811,8 +817,8 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: Theme.of(context).brightness == Brightness.dark
-                          ? [const Color(0xFF004D40), const Color(0xFF00695C)]
-                          : [const Color(0xFF00897B), const Color(0xFF4DB6AC)],
+                          ? [const Color(0xFF1A8A82), const Color(0xFF239089)]
+                          : [const Color(0xFF33BCB4), const Color(0xFF4DB6AC)],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
@@ -837,7 +843,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
+                                color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
@@ -883,7 +889,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                 ),
               ),
 
-              // ── สถิติตามระยะทาง (moved from Dashboard) ─────────────────
+              // ── สถิติตามระยะทาง ─────────────────
               SliverToBoxAdapter(
                 child: Text(
                   'สถิติตามระยะทาง',
@@ -904,7 +910,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
               else
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (ctx, idx) => _DistanceStatCard(stat: distanceStats[idx]),
+                    (ctx, idx) => DistanceStatCard(stat: distanceStats[idx]),
                     childCount: distanceStats.length,
                   ),
                 ),
@@ -932,7 +938,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (ctx, idx) =>
-                        _DailySummaryTile(summary: dailySummaries[idx]),
+                        DailySummaryTile(summary: dailySummaries[idx]),
                     childCount: dailySummaries.length,
                   ),
                 ),
@@ -959,7 +965,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
               else
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (ctx, idx) => _PeriodSummaryTile(
+                    (ctx, idx) => PeriodSummaryTile(
                       summary: weeklySummaries[idx],
                       formatLabel: _formatWeekLabel,
                     ),
@@ -989,7 +995,7 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
               else
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (ctx, idx) => _PeriodSummaryTile(
+                    (ctx, idx) => PeriodSummaryTile(
                       summary: monthlySummaries[idx],
                       formatLabel: _formatMonthLabel,
                     ),
@@ -999,695 +1005,6 @@ class _TripFeePageState extends State<TripFeePage> with AutomaticKeepAliveClient
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DistanceActionCard extends StatefulWidget {
-  const _DistanceActionCard({
-    super.key,
-    required this.option,
-    required this.onTap,
-    required this.onEdit,
-  });
-
-  final DistanceOption option;
-  final VoidCallback onTap;
-  final VoidCallback onEdit;
-
-  @override
-  State<_DistanceActionCard> createState() => _DistanceActionCardState();
-}
-
-class _DistanceActionCardState extends State<_DistanceActionCard> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    duration: const Duration(milliseconds: 120),
-    vsync: this,
-  );
-
-  // Using file-level _getDistanceIcon helper
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.sizeOf(context).width;
-    final bool isSmallScreen = screenWidth < 380;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    String displayLabel = widget.option.label;
-    if (displayLabel == 'ระยะทาง 0-300 เมตร') {
-      displayLabel = '0-300 เมตร';
-    } else if (displayLabel == 'ระยะทาง 301-500 เมตร') {
-      displayLabel = '301-500 เมตร';
-    } else if (displayLabel == 'ระยะทาง 501 เมตร - 3 กิโลเมตร') {
-      displayLabel = '501 ม. - 3 กม.';
-    } else if (displayLabel == 'ระยะทาง มากกว่า 3 กิโลเมตร') {
-      displayLabel = 'มากกว่า 3 กม.';
-    }
-
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _ctrl.drive(Tween(begin: 1.0, end: 0.96)),
-        child: Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE0F2F1),
-              width: 1,
-            ),
-          ),
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Opacity(
-                  opacity: 0.01,
-                  child: Container(
-                    color: Colors.white,
-                    alignment: Alignment.center,
-                    child: Text(widget.option.label),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00897B).withOpacity(0.08),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _getDistanceIcon(widget.option.label),
-                        size: 20,
-                        color: const Color(0xFF00897B),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          displayLabel,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: kanitTextStyle(
-                            fontSize: isSmallScreen ? 11 : 12,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00897B),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${widget.option.rateBaht} ฿',
-                        style: kanitTextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: 4,
-                right: 4,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.edit_note,
-                    size: 22,
-                    color: isDark ? Colors.tealAccent : const Color(0xFF00897B),
-                  ),
-                  onPressed: widget.onEdit,
-                  tooltip: 'ระบุจำนวนรอบ',
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Distance Stats (migrated from DashboardPage)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _DistanceStats {
-  _DistanceStats({
-    required this.label,
-    required this.count,
-    required this.total,
-  });
-
-  final String label;
-  int count;
-  int total;
-}
-
-IconData _getDistanceIcon(String label) {
-  if (label.contains('0-300')) {
-    return Icons.directions_walk;
-  } else if (label.contains('301-500')) {
-    return Icons.motorcycle;
-  } else if (label.contains('501')) {
-    return Icons.directions_car;
-  } else {
-    return Icons.local_shipping;
-  }
-}
-
-class _DistanceStatCard extends StatelessWidget {
-  const _DistanceStatCard({required this.stat});
-  final _DistanceStats stat;
-
-  @override
-  Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.sizeOf(context).width;
-    final bool isSmallScreen = screenWidth < 380;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      height: 88,
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE0F2F1),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFF00897B).withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _getDistanceIcon(stat.label),
-                size: 24,
-                color: const Color(0xFF00897B),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    stat.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: kanitTextStyle(
-                      fontSize: isSmallScreen ? 14 : 15,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${stat.count} รอบ',
-                    style: kanitTextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white70 : Colors.black54,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${stat.total} ฿',
-              style: kanitTextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF00897B),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _DailyTripSummary {
-  const _DailyTripSummary({
-    required this.date,
-    required this.totalBaht,
-    required this.totalRounds,
-    required this.recordCount,
-  });
-
-  final DateTime date;
-  final int totalBaht;
-  final int totalRounds;
-  final int recordCount;
-}
-
-class _SummaryPanel extends StatelessWidget {
-  const _SummaryPanel({
-    required this.totalBaht,
-    required this.totalRounds,
-    required this.canClear,
-    required this.canExport,
-    required this.onClear,
-    required this.onExport,
-    required this.dateLabel,
-    required this.onSelectDate,
-  });
-
-  final int totalBaht;
-  final int totalRounds;
-  final bool canClear;
-  final bool canExport;
-  final VoidCallback onClear;
-  final VoidCallback onExport;
-  final String dateLabel;
-  final VoidCallback onSelectDate;
-
-  @override
-  Widget build(BuildContext context) {
-    final double screenWidth = MediaQuery.sizeOf(context).width;
-    final bool isSmallScreen = screenWidth < 380;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF00897B), Color(0xFF26A69A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'ยอดรวม $dateLabel',
-                        style: kanitTextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withOpacity(0.85),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: onSelectDate,
-                      child: const Icon(
-                        Icons.edit_calendar,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$totalBaht ฿',
-                  style: kanitTextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  'รวม $totalRounds รอบ',
-                  style: kanitTextStyle(
-                    fontSize: 14,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (canExport)
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF00897B),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    textStyle: kanitTextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  onPressed: onExport,
-                  icon: const Icon(Icons.file_download_outlined, size: 16),
-                  label: const Text('Export CSV'),
-                ),
-              if (canClear) ...[
-                const SizedBox(height: 6),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.red.shade100,
-                    visualDensity: VisualDensity.compact,
-                    textStyle: kanitTextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  onPressed: onClear,
-                  icon: const Icon(Icons.delete_sweep_outlined, size: 14),
-                  label: const Text('ล้างข้อมูล'),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DailySummaryTile extends StatelessWidget {
-  const _DailySummaryTile({required this.summary});
-
-  final _DailyTripSummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    final onPrimaryContainer = Theme.of(context).colorScheme.onPrimaryContainer;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -16,
-              top: -16,
-              child: CircleAvatar(
-                radius: 48,
-                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.06),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _formatDate(summary.date),
-                          style: kanitTextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: onPrimaryContainer,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.check_circle_outline,
-                              size: 14,
-                              color: onPrimaryContainer.withOpacity(0.7),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'รวม ${summary.totalRounds} รอบ • ${summary.recordCount} รายการ',
-                              style: kanitTextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: onPrimaryContainer.withOpacity(0.8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '${summary.totalBaht} ฿',
-                    style: kanitTextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: onPrimaryContainer,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final target = DateTime(date.year, date.month, date.day);
-
-    if (target == today) {
-      return 'วันนี้ (${_formatNumericDate(date)})';
-    }
-
-    final yesterday = today.subtract(const Duration(days: 1));
-    if (target == yesterday) {
-      return 'เมื่อวาน (${_formatNumericDate(date)})';
-    }
-
-    return _formatNumericDate(date);
-  }
-}
-
-class _RecordTile extends StatelessWidget {
-  const _RecordTile({
-    required this.record,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final TripRecord record;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final isCompact = MediaQuery.sizeOf(context).width < 600;
-    final totalText = '${record.totalBaht} บาท';
-
-    final Color leadingColor = switch (record.rateBaht) {
-      5 => Colors.blue.shade400,
-      10 => Colors.green.shade400,
-      15 => Colors.orange.shade400,
-      25 => Colors.red.shade400,
-      _ => Colors.grey.shade400,
-    };
-
-    return Card(
-      elevation: 2,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(
-              color: leadingColor,
-              width: 6,
-            ),
-          ),
-        ),
-        child: ListTile(
-          title: Text(record.distanceLabel),
-          subtitle: Text(
-            isCompact
-                ? '${record.rounds} รอบ x ${record.rateBaht} บาทต่อบิล • ${_formatTime(record.createdAt)}\n$totalText'
-                : '${record.rounds} รอบ x ${record.rateBaht} บาทต่อบิล • ${_formatTime(record.createdAt)}',
-          ),
-          trailing: isCompact
-              ? PopupMenuButton<_RecordAction>(
-                  tooltip: 'เมนูรายการ',
-                  onSelected: (action) {
-                    switch (action) {
-                      case _RecordAction.edit:
-                        onEdit();
-                      case _RecordAction.delete:
-                        onDelete();
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: _RecordAction.edit,
-                      child: ListTile(
-                        leading: Icon(Icons.edit_outlined),
-                        title: Text('แก้ไข'),
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: _RecordAction.delete,
-                      child: ListTile(
-                        leading: Icon(Icons.delete_outline),
-                        title: Text('ลบ'),
-                      ),
-                    ),
-                  ],
-                )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      totalText,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'แก้ไขจำนวนรอบ',
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined),
-                    ),
-                    IconButton(
-                      tooltip: 'ลบรายการ',
-                      onPressed: onDelete,
-                      icon: const Icon(Icons.delete_outline),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-
-  static String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute น.';
-  }
-}
-
-enum _RecordAction { edit, delete }
-
-String _formatNumericDate(DateTime date) {
-  final day = date.day.toString().padLeft(2, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  return '$day/$month/${date.year}';
-}
-
-class _PeriodSummary {
-  const _PeriodSummary({
-    required this.periodStart,
-    required this.totalBaht,
-    required this.totalRounds,
-    required this.recordCount,
-  });
-
-  final DateTime periodStart;
-  final int totalBaht;
-  final int totalRounds;
-  final int recordCount;
-}
-
-class _PeriodSummaryTile extends StatelessWidget {
-  const _PeriodSummaryTile({required this.summary, required this.formatLabel});
-
-  final _PeriodSummary summary;
-  final String Function(DateTime) formatLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: const Icon(Icons.bar_chart_outlined),
-        title: Text(formatLabel(summary.periodStart)),
-        subtitle: Text(
-          'รวม ${summary.totalRounds} รอบ • ${summary.recordCount} รายการ',
-        ),
-        trailing: Text(
-          '${summary.totalBaht} บาท',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -1716,4 +1033,10 @@ String _formatWeekLabel(DateTime weekStart) {
 
 String _formatMonthLabel(DateTime monthStart) {
   return '${_thaiMonths[monthStart.month - 1]} ${monthStart.year}';
+}
+
+String _formatNumericDate(DateTime date) {
+  final day = date.day.toString().padLeft(2, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  return '$day/$month/${date.year}';
 }

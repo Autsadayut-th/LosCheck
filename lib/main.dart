@@ -6,9 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'database/hive_database.dart';
 import 'providers/app_state_provider.dart';
-import 'screens/customer_page.dart';
-import 'screens/dashboard_page.dart';
-import 'screens/trip_fee_page.dart';
+import 'screens/customer_page/customer_page.dart';
+import 'screens/dashboard_page/dashboard_page.dart';
+import 'screens/trip_fee_page/trip_fee_page.dart';
 import 'screens/settings_page.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -108,9 +108,9 @@ class MyAppState extends State<MyApp> {
         locale: const Locale('th', 'TH'),
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.teal,
-            primary: const Color(0xFF00897B),
-            secondary: Colors.amber.shade700,
+            seedColor: const Color(0xFF33BCB4),
+            primary: const Color(0xFF33BCB4),
+            secondary: const Color(0xFFF9BE00),
           ),
           useMaterial3: true,
           fontFamily: isTesting ? 'Roboto' : GoogleFonts.kanit().fontFamily,
@@ -144,7 +144,7 @@ class MyAppState extends State<MyApp> {
                   labelSmall: GoogleFonts.kanit(fontSize: 14, fontWeight: FontWeight.normal),
                 ),
           appBarTheme: AppBarTheme(
-            backgroundColor: const Color(0xFF00897B),
+            backgroundColor: const Color(0xFF33BCB4),
             foregroundColor: Colors.white,
             elevation: 0,
             toolbarHeight: 56,
@@ -161,10 +161,10 @@ class MyAppState extends State<MyApp> {
                   ),
           ),
           navigationBarTheme: NavigationBarThemeData(
-            indicatorColor: const Color(0xFFE0F2F1), // Light Teal indicator
+            indicatorColor: const Color(0xFFE0F5F4), // Light Custom Teal indicator
             iconTheme: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) {
-                return const IconThemeData(color: Color(0xFF004D40));
+                return const IconThemeData(color: Color(0xFF1A8A82));
               }
               return const IconThemeData(color: Colors.black54);
             }),
@@ -173,14 +173,14 @@ class MyAppState extends State<MyApp> {
                   ? const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
                   : GoogleFonts.kanit(fontSize: 12, fontWeight: FontWeight.w600);
               if (states.contains(WidgetState.selected)) {
-                return font.copyWith(color: const Color(0xFF004D40));
+                return font.copyWith(color: const Color(0xFF1A8A82));
               }
               return font.copyWith(color: Colors.black54);
             }),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00897B),
+              backgroundColor: const Color(0xFF33BCB4),
               foregroundColor: Colors.white,
               elevation: 1,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
@@ -192,9 +192,9 @@ class MyAppState extends State<MyApp> {
         ),
         darkTheme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.tealAccent,
-            primary: Colors.tealAccent.shade200,
-            secondary: Colors.amberAccent,
+            seedColor: const Color(0xFF66D4CE),
+            primary: const Color(0xFF66D4CE),
+            secondary: const Color(0xFFFFD54F),
             brightness: Brightness.dark,
             surface: const Color(0xFF121212),
             surfaceContainerHighest: const Color(0xFF2C2C2C),
@@ -249,7 +249,7 @@ class MyAppState extends State<MyApp> {
                   ),
           ),
           navigationBarTheme: NavigationBarThemeData(
-            indicatorColor: const Color(0xFF004D40), // Dark Teal indicator
+            indicatorColor: const Color(0xFF1A8A82), // Custom Dark Teal indicator
             iconTheme: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) {
                 return const IconThemeData(color: Colors.white);
@@ -268,7 +268,7 @@ class MyAppState extends State<MyApp> {
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.tealAccent.shade200,
+              backgroundColor: const Color(0xFF66D4CE),
               foregroundColor: Colors.black87,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),

@@ -390,15 +390,15 @@ class _GrandTotalCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF004D40), const Color(0xFF00695C)]
-              : [const Color(0xFF00897B), const Color(0xFF26A69A)],
+              ? [const Color(0xFF1A8A82), const Color(0xFF239089)]
+              : [const Color(0xFF33BCB4), const Color(0xFF5CCDC6)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: DesignTokens.borderRadiusLg,
         boxShadow: [
           BoxShadow(
-            color: (isDark ? Colors.tealAccent : const Color(0xFF00897B))
+            color: (isDark ? Colors.tealAccent : const Color(0xFF33BCB4))
                 .withOpacity(isDark ? 0.2 : 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),

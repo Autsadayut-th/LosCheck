@@ -102,7 +102,7 @@ class _PeriodSummaryPageState extends State<PeriodSummaryPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: const Color(0xFF00897B),
+                  primary: const Color(0xFF33BCB4),
                 ),
           ),
           child: child!,
@@ -476,15 +476,15 @@ class _GrandTotalCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF004D40), const Color(0xFF00695C)]
-              : [const Color(0xFF00897B), const Color(0xFF26A69A)],
+              ? [const Color(0xFF1A8A82), const Color(0xFF239089)]
+              : [const Color(0xFF33BCB4), const Color(0xFF5CCDC6)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: DesignTokens.borderRadiusLg,
         boxShadow: [
           BoxShadow(
-            color: (isDark ? Colors.tealAccent : const Color(0xFF00897B))
+            color: (isDark ? Colors.tealAccent : const Color(0xFF33BCB4))
                 .withValues(alpha: isDark ? 0.15 : 0.25),
             blurRadius: 16,
             offset: const Offset(0, 6),
@@ -639,8 +639,8 @@ class _DailySummaryCard extends StatelessWidget {
 
     final cardColor = isToday
         ? (isDark
-            ? const Color(0xFF004D40).withValues(alpha: 0.3)
-            : const Color(0xFFE0F2F1))
+            ? const Color(0xFF1A8A82).withValues(alpha: 0.3)
+            : const Color(0xFFE0F5F4))
         : (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     final borderColor = isToday
@@ -668,7 +668,7 @@ class _DailySummaryCard extends StatelessWidget {
             height: isSmall ? 40 : 46,
             decoration: BoxDecoration(
               color: isToday
-                  ? const Color(0xFF00897B)
+                  ? const Color(0xFF33BCB4)
                   : context.colors.primary.withValues(alpha: 0.1),
               borderRadius: DesignTokens.borderRadiusSm,
             ),
@@ -732,7 +732,7 @@ class _DailySummaryCard extends StatelessWidget {
             style: kanitTextStyle(
               fontSize: isSmall ? 16 : 18,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF00897B),
+              color: const Color(0xFF33BCB4),
             ),
           ),
         ],
