@@ -177,5 +177,33 @@ void main() {
         findsNWidgets(2),
       ); // One in search text field, one in the customer tile
     });
+
+    testWidgets('initializes with selected customer phone', (tester) async {
+      final now = DateTime.now();
+      await appDatabase.insertCustomer(
+        CustomerRecord(
+          phone: '0812345678',
+          name: 'สมชาย',
+          address: '123 สุขุมวิท',
+          createdAt: now,
+          latitude: 13.7563,
+          longitude: 100.5018,
+        ),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: RoutePlanningPage(
+              initialSelectedCustomerPhone: '0812345678',
+            ),
+          ),
+        ),
+      );
+      await pumpApp(tester);
+
+      // The customer "สมชาย" should be selected, so "เริ่มนำทาง (1 จุด)" button should be enabled.
+      expect(find.textContaining('เริ่มนำทาง (1 จุด'), findsOneWidget);
+    });
   });
 }

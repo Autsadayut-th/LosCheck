@@ -284,7 +284,11 @@ class _DashboardMapContentState extends State<DashboardMapContent> {
         onClose: () => setState(() => _selectedCustomer = null),
         onNavigateToRoutePlanning: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const RoutePlanningPage()),
+          MaterialPageRoute(
+            builder: (_) => RoutePlanningPage(
+              initialSelectedCustomerPhone: customer.phone,
+            ),
+          ),
         ),
       ),
     );

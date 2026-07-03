@@ -29,6 +29,7 @@ class CustomerRecordTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool useCompact = isCompact || MediaQuery.sizeOf(context).width < 600;
 
     Widget leadingWidget;
     if (record.imageUrl != null && record.imageUrl!.isNotEmpty) {
@@ -134,11 +135,13 @@ class CustomerRecordTile extends StatelessWidget {
                               fontSize: 13,
                               color: isDark ? Colors.white60 : Colors.black54,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    if (!isCompact)
+                    if (!useCompact)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -276,7 +279,7 @@ class CustomerRecordTile extends StatelessWidget {
                     ],
                   ],
                 ),
-                if (isCompact) ...[
+                if (useCompact) ...[
                   const SizedBox(height: 12),
                   const Divider(height: 1),
                   const SizedBox(height: 8),

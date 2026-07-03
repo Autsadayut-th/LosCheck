@@ -39,3 +39,12 @@ Future<void> disposeAppTree(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 300));
   await tester.pump();
 }
+
+/// Clears all active SnackBars to prevent them from obscuring buttons like FABs in tests.
+Future<void> clearSnackBars(WidgetTester tester) async {
+  try {
+    final context = tester.element(find.byType(Navigator).first);
+    ScaffoldMessenger.of(context).clearSnackBars();
+    await tester.pumpAndSettle();
+  } catch (_) {}
+}

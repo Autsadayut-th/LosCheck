@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>ระบบจำเป็นต้องใช้การรู้จำเสียงเพื่อค้นหารายชื่อลูกค้า</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>ระบบจำเป็นต้องใช้ไมโครโฟนเพื่อรับเสียงพูดค้นหา</string>
 </dict>
 </plist>

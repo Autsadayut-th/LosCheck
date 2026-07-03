@@ -5,6 +5,7 @@ import '../../../core/theme_extensions.dart';
 import '../../../models/customer_record.dart';
 import '../route_planning_page.dart';
 import 'route_planning_widgets.dart';
+import '../../../widgets/voice_search_bottom_sheet.dart';
 
 class RoutePlanningSetupView extends StatelessWidget {
   final RoutePlanningPageContentState state;
@@ -19,8 +20,10 @@ class RoutePlanningSetupView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final filteredCustomers = customers.where((c) {
-      return c.name.toLowerCase().contains(state.searchQuery.toLowerCase()) ||
-          c.phone.contains(state.searchQuery);
+      final query = state.searchQuery.toLowerCase();
+      return c.name.toLowerCase().contains(query) ||
+          c.phone.contains(query) ||
+          c.address.toLowerCase().contains(query);
     }).toList();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -211,14 +214,44 @@ class RoutePlanningSetupView extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   child: TextField(
+                                    controller: state.searchController,
                                     onChanged: (val) => state.searchQuery = val,
                                     style: kanitTextStyle(fontSize: 14),
                                     decoration: InputDecoration(
-                                      hintText: 'ค้นชื่อหรือเบอร์โทร...',
+                                      hintText: 'ค้นชื่อ เบอร์โทร หรือที่อยู่...',
                                       prefixIcon: const Icon(
                                         Icons.search,
                                         size: 18,
                                         color: DesignTokens.primaryMain,
+                                      ),
+                                      suffixIcon: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (state.searchController.text.isNotEmpty)
+                                            IconButton(
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(),
+                                              icon: const Icon(Icons.clear, size: 16),
+                                              onPressed: () {
+                                                state.searchController.clear();
+                                                state.searchQuery = '';
+                                              },
+                                            ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                            icon: const Icon(Icons.mic, size: 18, color: Color(0xFF33BCB4)),
+                                            onPressed: () async {
+                                              final result = await showVoiceSearchBottomSheet(context);
+                                              if (result != null && result.isNotEmpty) {
+                                                state.searchController.text = result;
+                                                state.searchQuery = result;
+                                              }
+                                            },
+                                          ),
+                                          const SizedBox(width: 8),
+                                        ],
                                       ),
                                       hintStyle: kanitTextStyle(
                                         color: Colors.grey.shade500,
@@ -226,7 +259,7 @@ class RoutePlanningSetupView extends StatelessWidget {
                                       ),
                                       border: InputBorder.none,
                                       contentPadding: const EdgeInsets.symmetric(
-                                        vertical: 10,
+                                        vertical: 8,
                                       ),
                                     ),
                                   ),

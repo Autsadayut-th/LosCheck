@@ -25,6 +25,9 @@
     <!-- Phone call (กดโทรออกหาลูกค้า) -->
     <uses-permission android:name="android.permission.CALL_PHONE"/>
 
+    <!-- Recording Audio & Speech Recognition -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- ─── Application ──────────────────────────────────────── -->
     <application
         android:label="LosCheck"
@@ -53,8 +56,12 @@
             android:value="2" />
     </application>
 
-    <!-- ─── Queries (url_launcher) ───────────────────────────── -->
+    <!-- ─── Queries (url_launcher / speech_to_text) ──────────── -->
     <queries>
+        <!-- Speech Recognition Service -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
         <!-- Process Text (Flutter engine) -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>

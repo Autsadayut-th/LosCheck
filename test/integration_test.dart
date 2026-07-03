@@ -47,20 +47,20 @@ void main() {
 
       // Wait until loading finishes
       int attempts = 0;
-      while (find.text('รายได้วันนี้').evaluate().isEmpty && attempts < 20) {
+      while (find.text('0 รอบ').evaluate().isEmpty && attempts < 20) {
         await tester.pump(const Duration(milliseconds: 100));
         attempts++;
       }
 
-      if (find.text('รายได้วันนี้').evaluate().isEmpty) {
+      if (find.text('0 รอบ').evaluate().isEmpty) {
         final textWidgets = tester.widgetList<Text>(find.byType(Text));
         for (final t in textWidgets) {
           print('FOUND TEXT: ${t.data}');
         }
       }
 
-      // Initially on DashboardPage (shows stats like 'รายได้วันนี้')
-      expect(find.text('รายได้วันนี้'), findsOneWidget);
+      // Initially on DashboardPage (shows stats like '0 รอบ')
+      expect(find.text('0 รอบ'), findsOneWidget);
 
       // Navigate to CustomerPage
       await tester.tap(find.descendant(
@@ -138,9 +138,9 @@ void main() {
       ));
       await pumpApp(tester);
 
-      // Switch to Tab 2 to add customer
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      // Tap FAB to add customer
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       // Add a customer
       await tester.enterText(
@@ -159,18 +159,16 @@ void main() {
       );
       await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
+      await clearSnackBars(tester);
 
-      // Switch to Tab 1 to verify it has been added
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
-
+      // Verify it has been added (should be back on list screen automatically)
       expect(find.text('สมชาย'), findsOneWidget);
-      expect(find.textContaining('0812345678\n'), findsOneWidget);
+      expect(find.text('0812345678'), findsOneWidget);
 
-      // Edit by tapping the tile (auto-switches to Tab 2)
+      // Edit by tapping the tile (opens CustomerFormPage)
       await tester.tap(find.text('สมชาย'));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerNameField')),
@@ -178,12 +176,10 @@ void main() {
       );
       await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
+      await clearSnackBars(tester);
 
-      // Switch to Tab 1 to verify and delete
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
-
+      // Verify changes (should be back on list screen automatically)
       expect(find.text('สมชาย ใหม่'), findsOneWidget);
 
       // Delete
@@ -306,11 +302,11 @@ void main() {
       ));
       await pumpApp(tester);
 
-      // Switch to Tab 2 to add customers
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      // Tap FAB to add first customer
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
-      // Add multiple customers
+      // Add first customer
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
@@ -327,7 +323,12 @@ void main() {
       );
       await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
+      await clearSnackBars(tester);
+
+      // Tap FAB to add second customer
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       // Add second customer
       await tester.enterText(
@@ -346,13 +347,10 @@ void main() {
       );
       await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
+      await clearSnackBars(tester);
 
-      // Switch to Tab 1 to filter
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
-
-      // Search
+      // Search (already back on list page)
       await tester.enterText(
         find.byKey(const Key('customerPhoneFilterField')),
         '081',

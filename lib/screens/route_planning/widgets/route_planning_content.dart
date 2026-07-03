@@ -22,7 +22,9 @@ import 'route_planning_setup_view.dart';
 import 'route_planning_navigation_view.dart';
 
 class RoutePlanningPageContent extends StatefulWidget {
-  const RoutePlanningPageContent({super.key});
+  const RoutePlanningPageContent({super.key, this.initialSelectedCustomerPhone});
+
+  final String? initialSelectedCustomerPhone;
 
   @override
   State<RoutePlanningPageContent> createState() =>
@@ -51,7 +53,7 @@ class RoutePlanningPageContentState extends State<RoutePlanningPageContent> {
   List<CustomerRecord> _completedQueue = [];
 
   // GPS Real-time Tracking
-  Timer? _gpsTimer;
+  StreamSubscription<Map<String, double>>? _gpsSubscription;
   LatLng? _liveGpsPosition; // actual GPS dot on map
   bool _isFollowingGps = true; // auto-pan map to follow GPS
 
@@ -64,13 +66,14 @@ class RoutePlanningPageContentState extends State<RoutePlanningPageContent> {
   String? _setupPreviewPathCacheKey;
   List<LatLng>? _setupPreviewPathCacheValue;
 
-  // Controllers for coordinates
+  // Controllers
   final TextEditingController _latController = TextEditingController(
     text: '13.874324',
   );
   final TextEditingController _lngController = TextEditingController(
     text: '100.40142',
   );
+  final TextEditingController _searchController = TextEditingController();
 
   // ─── Public Getters/Setters & Methods ────────────────────────────
 
@@ -89,6 +92,7 @@ class RoutePlanningPageContentState extends State<RoutePlanningPageContent> {
   
   TextEditingController get latController => _latController;
   TextEditingController get lngController => _lngController;
+  TextEditingController get searchController => _searchController;
   
   MapController get mapController => _mapController;
   bool get isFollowingGps => _isFollowingGps;
@@ -157,6 +161,9 @@ class RoutePlanningPageContentState extends State<RoutePlanningPageContent> {
     super.initState();
     _tryGetGPSLocation();
     _initOsmRouter();
+    if (widget.initialSelectedCustomerPhone != null) {
+      _selectedCustomerPhones.add(widget.initialSelectedCustomerPhone!);
+    }
   }
 
   Future<void> _initOsmRouter() async {
@@ -168,42 +175,49 @@ class RoutePlanningPageContentState extends State<RoutePlanningPageContent> {
 
   @override
   void dispose() {
-    _gpsTimer?.cancel();
+    _gpsSubscription?.cancel();
     _mapController.dispose();
     _latController.dispose();
     _lngController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   // ─── GPS Real-time Tracking ────────────────────────────────────
 
   void _startGpsTracking() {
-    _gpsTimer?.cancel();
-    _updateGpsPosition(); // immediate first update
-    _gpsTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _updateGpsPosition();
-    });
-  }
+    _gpsSubscription?.cancel();
 
-  void _stopGpsTracking() {
-    _gpsTimer?.cancel();
-    _gpsTimer = null;
-    if (mounted) setState(() => _liveGpsPosition = null);
-  }
-
-  Future<void> _updateGpsPosition() async {
-    try {
-      final loc = await LocationService().getCurrentLocation();
-      if (loc != null && mounted) {
+    // Get immediate position first
+    LocationService().getCurrentLocation().then((loc) {
+      if (loc != null && mounted && _gpsSubscription != null) {
         final newPos = LatLng(loc['latitude']!, loc['longitude']!);
         setState(() => _liveGpsPosition = newPos);
         if (_isFollowingGps) {
           _mapController.move(newPos, _mapController.camera.zoom);
         }
       }
-    } catch (_) {
-      // Silently ignore GPS errors during tracking
-    }
+    }).catchError((_) {});
+
+    _gpsSubscription = LocationService().getLocationStream().listen(
+      (loc) {
+        if (!mounted) return;
+        final newPos = LatLng(loc['latitude']!, loc['longitude']!);
+        setState(() => _liveGpsPosition = newPos);
+        if (_isFollowingGps) {
+          _mapController.move(newPos, _mapController.camera.zoom);
+        }
+      },
+      onError: (_) {
+        // Silently ignore GPS stream errors during tracking
+      },
+    );
+  }
+
+  void _stopGpsTracking() {
+    _gpsSubscription?.cancel();
+    _gpsSubscription = null;
+    if (mounted) setState(() => _liveGpsPosition = null);
   }
 
   Future<void> _tryGetGPSLocation() async {

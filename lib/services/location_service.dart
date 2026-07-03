@@ -5,4 +5,5 @@ import 'location_service_stub.dart'
 abstract class LocationService {
   factory LocationService() => createLocationService();
   Future<Map<String, double>?> getCurrentLocation();
+  Stream<Map<String, double>> getLocationStream();
 }

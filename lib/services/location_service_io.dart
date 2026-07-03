@@ -33,4 +33,19 @@ class IoLocationService implements LocationService {
       return null;
     }
   }
+
+  @override
+  Stream<Map<String, double>> getLocationStream() {
+    return Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 2, // Update every 2 meters
+      ),
+    ).map((position) {
+      return {
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+      };
+    });
+  }
 }

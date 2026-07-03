@@ -21,4 +21,21 @@ class WebLocationService implements LocationService {
     }
     return null;
   }
+
+  @override
+  Stream<Map<String, double>> getLocationStream() {
+    final controller = StreamController<Map<String, double>>();
+    html.window.navigator.geolocation.watchPosition().listen((position) {
+      final coords = position.coords;
+      if (coords != null && coords.latitude != null && coords.longitude != null) {
+        controller.add({
+          'latitude': coords.latitude!.toDouble(),
+          'longitude': coords.longitude!.toDouble(),
+        });
+      }
+    }, onError: (err) {
+      controller.addError(err);
+    });
+    return controller.stream;
+  }
 }

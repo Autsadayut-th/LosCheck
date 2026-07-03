@@ -281,7 +281,7 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           width: double.infinity,
-          height: 42,
+          height: 48,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             gradient: widget.isEnabled
@@ -297,21 +297,14 @@ class _AnimatedGradientButtonState extends State<AnimatedGradientButton>
             color: widget.isEnabled
                 ? null
                 : (isDark ? Colors.grey.shade800 : Colors.grey.shade300),
-            boxShadow: widget.isEnabled
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
           ),
           child: ElevatedButton(
             onPressed: widget.onPressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(double.infinity, 48),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),

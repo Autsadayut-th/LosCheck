@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,14 +9,14 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/customer_record.dart';
 import '../../database/hive_database.dart';
 import '../../providers/app_state_provider.dart';
-import '../../services/location_service.dart';
 import '../../widgets/confirm_delete_dialog.dart';
 import '../../core/theme_extensions.dart';
 import '../map_page/map_page.dart';
 
 import 'models/customer_sort_method.dart';
-import 'widgets/customer_form.dart';
 import 'widgets/customer_record_tile.dart';
+import 'customer_form_page.dart';
+import '../../widgets/voice_search_bottom_sheet.dart';
 
 class CustomerPage extends StatefulWidget {
   const CustomerPage({super.key});
@@ -27,24 +26,15 @@ class CustomerPage extends StatefulWidget {
 }
 
 class _CustomerPageState extends State<CustomerPage>
-    with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
-  late final TabController _tabController;
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _latitudeController = TextEditingController();
-  final TextEditingController _longitudeController = TextEditingController();
-  final TextEditingController _mapLinkController = TextEditingController();
   final TextEditingController _phoneFilterController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   Timer? _filterDebounce;
   String _debouncedPhoneFilter = '';
   CustomerSortMethod _sortMethod = CustomerSortMethod.name;
-  String? _selectedImagePath;
 
   String get _activePhoneFilter {
     return _debouncedPhoneFilter.trim();
@@ -60,7 +50,8 @@ class _CustomerPageState extends State<CustomerPage>
             final matchesName = record.name.toLowerCase().contains(query);
             final matchesPhone = normalizedQuery.isNotEmpty &&
                 _normalizePhone(record.phone).contains(normalizedQuery);
-            return matchesName || matchesPhone;
+            final matchesAddress = record.address.toLowerCase().contains(query);
+            return matchesName || matchesPhone || matchesAddress;
           }).toList();
 
     switch (_sortMethod) {
@@ -86,25 +77,13 @@ class _CustomerPageState extends State<CustomerPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this)..addListener(() {
-      if (mounted) setState(() {});
-    });
     _phoneFilterController.addListener(_onPhoneFilterChanged);
-    _mapLinkController.addListener(_onMapLinkChanged);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _filterDebounce?.cancel();
     _phoneFilterController.removeListener(_onPhoneFilterChanged);
-    _mapLinkController.removeListener(_onMapLinkChanged);
-    _phoneController.dispose();
-    _nameController.dispose();
-    _addressController.dispose();
-    _latitudeController.dispose();
-    _longitudeController.dispose();
-    _mapLinkController.dispose();
     _phoneFilterController.dispose();
     super.dispose();
   }
@@ -143,77 +122,6 @@ class _CustomerPageState extends State<CustomerPage>
     });
   }
 
-  Future<void> _saveCustomer() async {
-    debugPrint('=== Save Customer Started ===');
-    debugPrint('Phone: ${_phoneController.text.trim()}');
-    debugPrint('Name: ${_nameController.text.trim()}');
-    debugPrint('Address: ${_addressController.text.trim()}');
-    debugPrint('Form valid: ${_formKey.currentState?.validate()}');
-
-    if (!_formKey.currentState!.validate()) {
-      debugPrint('Form validation failed');
-      return;
-    }
-
-    try {
-      final latText = _latitudeController.text.trim();
-      final lngText = _longitudeController.text.trim();
-      final latitude = latText.isNotEmpty ? double.tryParse(latText) : null;
-      final longitude = lngText.isNotEmpty ? double.tryParse(lngText) : null;
-
-      final record = CustomerRecord(
-        phone: _phoneController.text.trim(),
-        name: _nameController.text.trim(),
-        address: _addressController.text.trim(),
-        createdAt: DateTime.now(),
-        imageUrl: _selectedImagePath,
-        latitude: latitude,
-        longitude: longitude,
-      );
-
-      debugPrint('Creating customer record: ${record.phone}, ${record.name}, lat: ${record.latitude}, lng: ${record.longitude}');
-      debugPrint('Database initialized: ${appDatabase.isInitialized}');
-
-      await appDatabase.insertCustomer(record);
-      debugPrint('Customer inserted successfully');
-      
-      if (!mounted) return;
-      setState(() {
-        _phoneController.clear();
-        _nameController.clear();
-        _addressController.clear();
-        _latitudeController.clear();
-        _longitudeController.clear();
-        _selectedImagePath = null;
-        _phoneFilterController.clear();
-        _debouncedPhoneFilter = '';
-      });
-
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('บันทึกข้อมูลลูกค้าสำเร็จ'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 2500),
-        ),
-      );
-      debugPrint('=== Save Customer Completed Successfully ===');
-    } catch (e) {
-      debugPrint('=== Save Customer Failed ===');
-      debugPrint('Error: $e');
-      debugPrint('Error type: ${e.runtimeType}');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการบันทึก: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
   Future<void> _deleteRecord(CustomerRecord record) async {
     final confirmed = await confirmDelete(
       context,
@@ -224,7 +132,9 @@ class _CustomerPageState extends State<CustomerPage>
 
     try {
       await appDatabase.deleteCustomer(record.phone);
+      
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -246,137 +156,14 @@ class _CustomerPageState extends State<CustomerPage>
     }
   }
 
-  void _useRecord(CustomerRecord record) {
-    setState(() {
-      _phoneController.text = record.phone;
-      _nameController.text = record.name;
-      _addressController.text = record.address;
-      _latitudeController.text = record.latitude?.toString() ?? '';
-      _longitudeController.text = record.longitude?.toString() ?? '';
-      _selectedImagePath = record.imageUrl;
-      _phoneFilterController.clear();
-      _debouncedPhoneFilter = '';
-    });
-    _tabController.animateTo(1);
-  }
-
-  Future<void> _fetchCurrentLocation() async {
-    try {
-      final loc = await LocationService().getCurrentLocation();
-      if (loc != null) {
-        setState(() {
-          _latitudeController.text = loc['latitude']!.toStringAsFixed(6);
-          _longitudeController.text = loc['longitude']!.toStringAsFixed(6);
-        });
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ดึงพิกัด GPS ปัจจุบันสำเร็จ'),
-            backgroundColor: Colors.green,
-            duration: Duration(milliseconds: 2500),
-          ),
-        );
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ไม่สามารถดึงพิกัดปัจจุบันได้ กรุณาอนุญาตสิทธิ์เข้าตำแหน่งหรือระบุพิกัดด้วยตัวเอง'),
-            backgroundColor: Colors.orange,
-            duration: Duration(milliseconds: 2500),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการดึงตำแหน่ง: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
-  void _onMapLinkChanged() {
-    final text = _mapLinkController.text.trim();
-    if (text.isEmpty) return;
-
-    final coords = _parseGoogleMapsUrl(text);
-    if (coords != null) {
-      setState(() {
-        _latitudeController.text = coords['latitude']!.toStringAsFixed(6);
-        _longitudeController.text = coords['longitude']!.toStringAsFixed(6);
-        _mapLinkController.clear();
-      });
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('ดึงพิกัดจากลิงก์ Google Maps สำเร็จ!'),
-          backgroundColor: Colors.green,
-          duration: Duration(milliseconds: 2500),
-        ),
-      );
-    }
-  }
-
-  Map<String, double>? _parseGoogleMapsUrl(String url) {
-    try {
-      final decodedUrl = Uri.decodeFull(url);
-      
-      final uri = Uri.tryParse(decodedUrl);
-      if (uri != null) {
-        final queryParam = uri.queryParameters['query'] ?? uri.queryParameters['q'];
-        if (queryParam != null) {
-          final parts = queryParam.split(',');
-          if (parts.length >= 2) {
-            final lat = double.tryParse(parts[0].trim());
-            final lng = double.tryParse(parts[1].trim());
-            if (lat != null && lng != null) {
-              return {'latitude': lat, 'longitude': lng};
-            }
-          }
-        }
-      }
-
-      final atRegex = RegExp(r'@(-?\d+\.\d+),(-?\d+\.\d+)');
-      final atMatch = atRegex.firstMatch(decodedUrl);
-      if (atMatch != null) {
-        final lat = double.tryParse(atMatch.group(1) ?? '');
-        final lng = double.tryParse(atMatch.group(2) ?? '');
-        if (lat != null && lng != null) {
-          return {'latitude': lat, 'longitude': lng};
-        }
-      }
-
-      final placeRegex = RegExp(r'(?:place|search|maps)\/(-?\d+\.\d+),(-?\d+\.\d+)');
-      final placeMatch = placeRegex.firstMatch(decodedUrl);
-      if (placeMatch != null) {
-        final lat = double.tryParse(placeMatch.group(1) ?? '');
-        final lng = double.tryParse(placeMatch.group(2) ?? '');
-        if (lat != null && lng != null) {
-          return {'latitude': lat, 'longitude': lng};
-        }
-      }
-
-      final genericRegex = RegExp(r'(-?\d+\.\d+),\s*(-?\d+\.\d+)');
-      final genericMatch = genericRegex.firstMatch(decodedUrl);
-      if (genericMatch != null) {
-        final lat = double.tryParse(genericMatch.group(1) ?? '');
-        final lng = double.tryParse(genericMatch.group(2) ?? '');
-        if (lat != null && lng != null) {
-          if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-            return {'latitude': lat, 'longitude': lng};
-          }
-        }
-      }
-    } catch (_) {
-      // Return null on parsing issues
-    }
-    return null;
+  void _useRecord(CustomerRecord record) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomerFormPage(record: record),
+      ),
+    );
+    // Provider auto-updates via watchAllCustomers stream
   }
 
   Future<void> _callCustomer(CustomerRecord record) async {
@@ -487,6 +274,7 @@ class _CustomerPageState extends State<CustomerPage>
                         longitude: record.longitude,
                       );
                       await appDatabase.insertCustomer(updated);
+                      // Provider auto-updates via watchAllCustomers stream
                     },
                     child: const Text(
                       'ลบรูปภาพ',
@@ -527,38 +315,7 @@ class _CustomerPageState extends State<CustomerPage>
     );
 
     await appDatabase.insertCustomer(updated);
-  }
-
-  Future<void> _pickImageForForm() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('ถ่ายรูปบ้าน (กล้อง)'),
-              onTap: () => Navigator.of(context).pop(ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('เลือกจากแกลเลอรี (อัลบั้ม)'),
-              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImagePath = pickedFile.path;
-      });
-    }
+    // Provider auto-updates via watchAllCustomers stream
   }
 
   @override
@@ -590,107 +347,23 @@ class _CustomerPageState extends State<CustomerPage>
 
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            Material(
-              color: Theme.of(context).colorScheme.surface,
-              elevation: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  labelColor: const Color(0xFF33BCB4),
-                  unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                  indicatorColor: const Color(0xFF33BCB4),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  labelStyle: kanitTextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  unselectedLabelStyle: kanitTextStyle(fontWeight: FontWeight.normal, fontSize: 15),
-                  tabs: [
-                    Tab(
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: double.infinity,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            const Icon(Icons.search, size: 28),
-                            Positioned.fill(
-                              child: Opacity(
-                                opacity: 0.01,
-                                child: Container(
-                                  color: Colors.white,
-                                  alignment: Alignment.center,
-                                  child: const Text('รายชื่อลูกค้า'),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Tab(
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: double.infinity,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            const Icon(Icons.person_add, size: 28),
-                            Positioned.fill(
-                              child: Opacity(
-                                opacity: 0.01,
-                                child: Container(
-                                  color: Colors.white,
-                                  alignment: Alignment.center,
-                                  child: const Text('เพิ่ม/แก้ไขลูกค้า'),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildSearchTab(context, customers, filteredRecords, activePhoneFilter),
-                  _buildFormTab(context, appState),
-                ],
-              ),
-            ),
-          ],
-        ),
+        child: _buildSearchTab(context, customers, filteredRecords, activePhoneFilter),
       ),
-      floatingActionButton: _tabController.index == 0
-          ? FloatingActionButton(
-              key: const Key('addCustomerFab'),
-              onPressed: () {
-                _phoneController.clear();
-                _nameController.clear();
-                _addressController.clear();
-                _latitudeController.clear();
-                _longitudeController.clear();
-                _mapLinkController.clear();
-                setState(() {
-                  _selectedImagePath = null;
-                });
-                _tabController.animateTo(1);
-              },
-              child: const Icon(Icons.person_add),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton(
+        key: const Key('addCustomerFab'),
+        onPressed: () async {
+          final result = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CustomerFormPage(),
+            ),
+          );
+          if (result == true && mounted) {
+            // Provider auto-updates via watchAllCustomers stream
+          }
+        },
+        child: const Icon(Icons.person_add),
+      ),
     );
   }
 
@@ -781,13 +454,27 @@ class _CustomerPageState extends State<CustomerPage>
                     labelText: 'ค้นหาชื่อหรือเบอร์โทร',
                     hintText: 'พิมพ์ชื่อหรือเบอร์โทรศัพท์',
                     prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _phoneFilterController.text.isEmpty
-                        ? null
-                        : IconButton(
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_phoneFilterController.text.isNotEmpty)
+                          IconButton(
                             tooltip: 'ล้างคำค้นหา',
                             onPressed: _clearPhoneFilter,
                             icon: const Icon(Icons.clear),
                           ),
+                        IconButton(
+                          tooltip: 'ค้นหาด้วยเสียง',
+                          onPressed: () async {
+                            final result = await showVoiceSearchBottomSheet(context);
+                            if (result != null && result.isNotEmpty) {
+                              _phoneFilterController.text = result;
+                            }
+                          },
+                          icon: const Icon(Icons.mic, color: Color(0xFF33BCB4)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -850,82 +537,6 @@ class _CustomerPageState extends State<CustomerPage>
                   }, childCount: filteredRecords.length),
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFormTab(BuildContext context, AppStateProvider appState) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(
-            MediaQuery.sizeOf(context).width < 380 ? 12 : 20,
-          ),
-          child: Column(
-            children: [
-              if (appDatabase.isUsingInMemory)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: context.isDarkMode 
-                      ? Colors.amber.shade900.withOpacity(0.2)
-                      : Colors.amber.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.amber.shade700,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.cloud_off_rounded, color: Colors.amber.shade800),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'โหมดออฟไลน์ (In-Memory)',
-                              style: TextStyle(
-                                color: context.isDarkMode ? Colors.amber.shade200 : Colors.amber.shade900,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'ข้อมูลจะไม่ถูกบันทึกลงเครื่องถาวร กรุณาอย่าปิดบราวเซอร์',
-                              style: TextStyle(
-                                color: context.isDarkMode ? Colors.amber.shade100 : Colors.amber.shade800,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              CustomerForm(
-                formKey: _formKey,
-                phoneController: _phoneController,
-                nameController: _nameController,
-                addressController: _addressController,
-                latitudeController: _latitudeController,
-                longitudeController: _longitudeController,
-                mapLinkController: _mapLinkController,
-                canFillDetails: true,
-                selectedImagePath: _selectedImagePath,
-                onPickImage: _pickImageForForm,
-                onRemoveImage: () => setState(() => _selectedImagePath = null),
-                onSave: _saveCustomer,
-                onGetLocation: _fetchCurrentLocation,
-              ),
             ],
           ),
         ),

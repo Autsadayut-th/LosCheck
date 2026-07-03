@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loscheck/database/hive_database.dart';
-import 'package:loscheck/screens/customer_page.dart';
+import 'package:loscheck/screens/customer_page/customer_page.dart';
 
 import 'test_helpers.dart';
 
@@ -41,8 +41,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
       expect(find.text('เพิ่ม/แก้ไข ข้อมูลลูกค้า'), findsOneWidget);
       expect(find.text('เบอร์โทร'), findsOneWidget);
       expect(find.text('ชื่อลูกค้า'), findsOneWidget);
@@ -58,7 +58,7 @@ void main() {
       );
       await pumpApp(tester);
 
-      expect(find.byType(TabBar), findsOneWidget);
+      expect(find.byKey(const Key('customerPhoneFilterField')), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -69,8 +69,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       final nameField = tester.widget<TextFormField>(
         find.byKey(const Key('customerNameField')),
@@ -90,8 +90,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -117,8 +117,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -137,8 +137,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -157,8 +157,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -183,8 +183,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -203,13 +203,11 @@ void main() {
       await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
-
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
+      await clearSnackBars(tester);
 
       expect(find.text('สมชาย'), findsOneWidget);
-      expect(find.textContaining('0812345678\n123 ถนนสุขุมวิท'), findsOneWidget);
+      expect(find.text('0812345678'), findsOneWidget);
     });
 
     testWidgets('clears form after saving customer', (tester) async {
@@ -217,8 +215,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -237,7 +235,13 @@ void main() {
       await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
+      await clearSnackBars(tester);
+
+      // Verify we returned to the list and form page is closed, 
+      // but to check form is cleared we can open it again and verify fields are empty.
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       final phoneField = tester.widget<TextFormField>(
         find.byKey(const Key('customerPhoneField')),
@@ -250,8 +254,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -270,13 +274,11 @@ void main() {
       await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
-
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3)); // Dismiss SnackBar
 
       expect(find.text('สมชาย'), findsOneWidget);
-      expect(find.textContaining('0812345678\n'), findsOneWidget);
+      expect(find.text('0812345678'), findsOneWidget);
     });
 
     testWidgets('shows delete confirmation when delete button is tapped', (
@@ -286,8 +288,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -306,10 +308,7 @@ void main() {
       await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
-
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.delete_outline));
       await pumpApp(tester);
@@ -322,8 +321,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -342,10 +341,7 @@ void main() {
       await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
-
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.delete_outline));
       await pumpApp(tester);
@@ -360,8 +356,8 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
@@ -380,10 +376,7 @@ void main() {
       await pumpApp(tester);
 
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
-
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.delete_outline));
       await pumpApp(tester);
@@ -400,8 +393,8 @@ void main() {
       await pumpApp(tester);
 
       // Add first customer
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
@@ -417,11 +410,12 @@ void main() {
       );
       await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
+      await clearSnackBars(tester);
 
       // Add second customer
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0898765432',
@@ -437,11 +431,9 @@ void main() {
       );
       await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
 
       // Filter by phone
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
       await tester.enterText(
         find.byKey(const Key('customerPhoneFilterField')),
         '081',
@@ -459,8 +451,8 @@ void main() {
       await pumpApp(tester);
 
       // Add customer
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
@@ -476,11 +468,9 @@ void main() {
       );
       await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
+      await tester.pumpAndSettle();
 
       // Filter
-      await tester.tap(find.text('รายชื่อลูกค้า'));
-      await pumpApp(tester);
       await tester.enterText(
         find.byKey(const Key('customerPhoneFilterField')),
         '081',
@@ -502,8 +492,8 @@ void main() {
       );
       await pumpApp(tester);
 
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const Key('customerPhoneField')),
         '0812345678',
@@ -519,12 +509,10 @@ void main() {
       );
       await pumpApp(tester);
       await tester.tap(find.byKey(const Key('saveCustomerButton')));
-      await pumpApp(tester);
-
-      await tester.tap(find.text('รายชื่อลูกค้า'));
       await tester.pumpAndSettle();
+      await clearSnackBars(tester);
 
-      // Tap on the customer tile (should switch to Form Tab)
+      // Tap on the customer tile (should open CustomerFormPage via Navigator.push)
       await tester.tap(find.text('สมชาย'));
       await tester.pumpAndSettle();
 
@@ -543,8 +531,6 @@ void main() {
       expect(addressField.controller?.text, '123 ถนนสุขุมวิท');
     });
 
-
-
     testWidgets('displays empty state when no customers', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(home: Scaffold(body: CustomerPage())),
@@ -559,11 +545,74 @@ void main() {
         const MaterialApp(home: Scaffold(body: CustomerPage())),
       );
       await pumpApp(tester);
-      await tester.tap(find.text('เพิ่ม/แก้ไขลูกค้า'));
-      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
 
       expect(find.text('รูปภาพบ้านลูกค้า'), findsOneWidget);
       expect(find.text('เพิ่มรูปภาพบ้าน'), findsOneWidget);
+    });
+
+    testWidgets('filters customers by address/house number', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: CustomerPage())),
+      );
+      await pumpApp(tester);
+
+      // Add customer 1 (Sukhumvit)
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('customerPhoneField')), '0812345678');
+      await pumpApp(tester);
+      await tester.enterText(find.byKey(const Key('customerNameField')), 'สมชาย');
+      await tester.enterText(find.byKey(const Key('customerAddressField')), '123/4 ถนนสุขุมวิท');
+      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('saveCustomerButton')));
+      await tester.pumpAndSettle();
+      await clearSnackBars(tester);
+
+      // Add customer 2 (Silom)
+      await tester.tap(find.byKey(const Key('addCustomerFab')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('customerPhoneField')), '0898765432');
+      await pumpApp(tester);
+      await tester.enterText(find.byKey(const Key('customerNameField')), 'มานี');
+      await tester.enterText(find.byKey(const Key('customerAddressField')), '456/7 ถนนสีลม');
+      await pumpApp(tester);
+      await tester.tap(find.byKey(const Key('saveCustomerButton')));
+      await tester.pumpAndSettle();
+      await clearSnackBars(tester);
+
+      // Filter by house number
+      await tester.enterText(
+        find.byKey(const Key('customerPhoneFilterField')),
+        '123/4',
+      );
+      await pumpApp(tester);
+
+      expect(find.text('สมชาย'), findsOneWidget);
+      expect(find.text('มานี'), findsNothing);
+    });
+
+    testWidgets('displays voice search bottom sheet when mic button is tapped', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: CustomerPage())),
+      );
+      await pumpApp(tester);
+
+      // Tap mic button
+      await tester.tap(find.byIcon(Icons.mic));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Check if Voice Search overlay is displayed
+      expect(find.text('ค้นหาด้วยเสียงพูด'), findsOneWidget);
+      expect(find.text('กรุณาพูดชื่อ เบอร์โทร หรือบ้านเลขที่ลูกค้า'), findsOneWidget);
+
+      // Close it
+      await tester.tap(find.text('ยกเลิก'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ค้นหาด้วยเสียงพูด'), findsNothing);
     });
   });
 }
