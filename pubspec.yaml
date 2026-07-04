@@ -57,7 +57,7 @@ dependencies:
 
   # GPS / Location
   geolocator: ^10.1.0
-  speech_to_text: ^6.6.2
+  speech_to_text: ^7.4.0
   share_plus: ^10.1.0
   file_picker: ^8.1.2
 

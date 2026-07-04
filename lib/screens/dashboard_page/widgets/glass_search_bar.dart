@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme_extensions.dart';
+import '../../../widgets/voice_search_bottom_sheet.dart';
 
 /// แถบค้นหากึ่งโปร่งใส (Glass Search Bar) สำหรับค้นหาชื่อลูกค้าหรือเบอร์โทรศัพท์บนแผนที่
 class GlassSearchBar extends StatelessWidget {
@@ -39,15 +40,33 @@ class GlassSearchBar extends StatelessWidget {
         decoration: InputDecoration(
           hintText: 'ค้นหาชื่อลูกค้าหรือเบอร์โทร...',
           prefixIcon: Icon(Icons.search, color: isDark ? Colors.white70 : const Color(0xFF33BCB4)),
-          suffixIcon: controller.text.isNotEmpty
-              ? IconButton(
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (controller.text.isNotEmpty)
+                IconButton(
                   icon: const Icon(Icons.clear),
                   onPressed: () {
                     controller.clear();
                     onChanged('');
                   },
-                )
-              : null,
+                ),
+              IconButton(
+                icon: Icon(
+                  Icons.mic,
+                  color: isDark ? Colors.white70 : const Color(0xFF33BCB4),
+                ),
+                onPressed: () async {
+                  final result = await showVoiceSearchBottomSheet(context);
+                  if (result != null && result.isNotEmpty) {
+                    controller.text = result;
+                    onChanged(result);
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
           border: InputBorder.none,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

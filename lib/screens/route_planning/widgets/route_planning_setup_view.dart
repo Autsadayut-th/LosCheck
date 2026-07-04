@@ -645,6 +645,20 @@ class RoutePlanningSetupView extends StatelessWidget {
                                                             : Colors.black54,
                                                       ),
                                                     ),
+                                                    if (customer.address.isNotEmpty) ...[
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        customer.address,
+                                                        style: kanitTextStyle(
+                                                          fontSize: 11,
+                                                          color: isDark
+                                                              ? Colors.white38
+                                                              : Colors.black45,
+                                                        ),
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ],
                                                   ],
                                                 ),
                                               ),

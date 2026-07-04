@@ -531,7 +531,6 @@ class _CustomerPageState extends State<CustomerPage>
                       onUse: () => _useRecord(record),
                       onDelete: () => _deleteRecord(record),
                       onCall: () => _callCustomer(record),
-                      onMap: () => _openMap(record),
                       onImage: () => _pickOrViewImage(record),
                     );
                   }, childCount: filteredRecords.length),

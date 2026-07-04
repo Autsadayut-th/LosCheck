@@ -13,7 +13,6 @@ class CustomerRecordTile extends StatelessWidget {
     required this.onUse,
     required this.onDelete,
     required this.onCall,
-    required this.onMap,
     required this.onImage,
     this.isCompact = false,
   });
@@ -22,7 +21,6 @@ class CustomerRecordTile extends StatelessWidget {
   final VoidCallback onUse;
   final VoidCallback onDelete;
   final VoidCallback onCall;
-  final VoidCallback onMap;
   final VoidCallback onImage;
   final bool isCompact;
 
@@ -149,11 +147,6 @@ class CustomerRecordTile extends StatelessWidget {
                             tooltip: 'โทรออก',
                             onPressed: onCall,
                             icon: const Icon(Icons.call_outlined, color: Color(0xFF33BCB4)),
-                          ),
-                          IconButton(
-                            tooltip: 'แผนที่',
-                            onPressed: onMap,
-                            icon: const Icon(Icons.map_outlined, color: Color(0xFF33BCB4)),
                           ),
                           IconButton(
                             tooltip: 'รูปภาพ',
@@ -293,22 +286,6 @@ class CustomerRecordTile extends StatelessWidget {
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFF33BCB4),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          textStyle: kanitTextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        onPressed: onMap,
-                        icon: const Icon(Icons.map_outlined, size: 18),
-                        label: const Text('นำทาง'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF33BCB4),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
                           textStyle: kanitTextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),

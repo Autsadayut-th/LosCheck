@@ -9,6 +9,7 @@ import 'providers/app_state_provider.dart';
 import 'screens/customer_page/customer_page.dart';
 import 'screens/dashboard_page/dashboard_page.dart';
 import 'screens/trip_fee_page/trip_fee_page.dart';
+import 'screens/route_history/route_history_page.dart';
 import 'screens/settings_page.dart';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -306,6 +307,7 @@ class _HomeShellState extends State<HomeShell> {
     DashboardPage(),
     TripFeePage(),
     CustomerPage(),
+    RouteHistoryPage(),
     SettingsPage(),
   ];
 
@@ -442,6 +444,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.person_pin_circle_outlined),
             selectedIcon: Icon(Icons.person_pin_circle),
             label: 'ลูกค้า',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.history_outlined),
+            selectedIcon: Icon(Icons.history),
+            label: 'ประวัติ',
           ),
           const NavigationDestination(
             icon: Icon(Icons.settings_outlined),
